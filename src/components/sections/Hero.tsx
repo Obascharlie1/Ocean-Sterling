@@ -59,27 +59,22 @@ function arrangeLetters(text: string, extra = '') {
 export function Hero() {
   return (
     <section className="relative min-h-[60vh] sm:min-h-screen flex items-center pt-28 sm:pt-24 lg:pt-20 pb-16 overflow-hidden">
-      {/* Video background */}
-      <video
-        className="absolute inset-0 w-full h-full object-cover"
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="auto"
-      >
-        <source src="/hero.webm" type="video/webm" />
-        <source src="/hero.mp4" type="video/mp4" />
-      </video>
+      {/* Deep gradient backdrop with brand-green glows */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(900px 620px at 18% 6%, rgba(6,193,103,0.20), transparent 60%),' +
+            'radial-gradient(760px 520px at 100% 100%, rgba(6,193,103,0.12), transparent 60%),' +
+            'linear-gradient(160deg, #0a0f0c 0%, #070707 55%)',
+        }}
+      />
 
-      {/* Dark overlay — same in both light and dark mode */}
-      <div className="absolute inset-0 bg-dark-base/80" />
-
-      {/* Subtle grid on top of overlay */}
+      {/* Subtle grid */}
       <div
         className="absolute inset-0 pointer-events-none opacity-[0.05]"
         style={{
-          backgroundImage: `linear-gradient(#E0241C 1px, transparent 1px), linear-gradient(90deg, #E0241C 1px, transparent 1px)`,
+          backgroundImage: `linear-gradient(#06C167 1px, transparent 1px), linear-gradient(90deg, #06C167 1px, transparent 1px)`,
           backgroundSize: '80px 80px',
         }}
       />
@@ -101,7 +96,7 @@ export function Hero() {
             >
               <div className="w-6 h-px bg-brand-primary" />
               <span className="text-xs font-bold tracking-widest text-slate-400 uppercase">
-                Engineered for Speed
+                Precision at market speed
               </span>
             </motion.div>
 
@@ -202,16 +197,16 @@ export function Hero() {
                 <svg viewBox="0 0 500 140" preserveAspectRatio="none" className="w-full h-full">
                   <defs>
                     <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#E0241C" stopOpacity="0.15" />
-                      <stop offset="100%" stopColor="#E0241C" stopOpacity="0" />
+                      <stop offset="0%" stopColor="#06C167" stopOpacity="0.15" />
+                      <stop offset="100%" stopColor="#06C167" stopOpacity="0" />
                     </linearGradient>
                   </defs>
                   {[0.25, 0.5, 0.75].map((y) => (
                     <line key={y} x1="0" y1={y * 140} x2="500" y2={y * 140} stroke="currentColor" strokeOpacity="0.06" strokeWidth="1" />
                   ))}
                   <path d={chartPath.area} fill="url(#chartFill)" />
-                  <path d={chartPath.line} fill="none" stroke="#E0241C" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" />
-                  <circle cx="500" cy="19" r="3" fill="#E0241C" />
+                  <path d={chartPath.line} fill="none" stroke="#06C167" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" />
+                  <circle cx="500" cy="19" r="3" fill="#06C167" />
                 </svg>
               </div>
 
