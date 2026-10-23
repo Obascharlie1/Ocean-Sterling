@@ -17,6 +17,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { DEMO_MODE, DEMO_USER } from '@/lib/demo'
 
 const navItems = [
   { href: '/dashboard',              label: 'Dashboard',    icon: LayoutDashboard, exact: true },
@@ -52,6 +53,7 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
 
   // Fetch current user info
   useEffect(() => {
+    if (DEMO_MODE) { setUserName(DEMO_USER.name); setUserEmail(DEMO_USER.email); return }
     const supabase = createClient()
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return

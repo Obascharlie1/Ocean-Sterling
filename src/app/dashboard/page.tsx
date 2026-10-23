@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { createClient } from '@/lib/supabase/client'
+import { DEMO_MODE, DEMO_PROFILE, DEMO_TRANSACTIONS } from '@/lib/demo'
 
 interface Profile {
   full_name: string
@@ -93,6 +94,12 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function load() {
+      if (DEMO_MODE) {
+        setProfile(DEMO_PROFILE)
+        setTransactions(DEMO_TRANSACTIONS)
+        setLoading(false)
+        return
+      }
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return

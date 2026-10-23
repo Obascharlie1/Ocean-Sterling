@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { DEMO_MODE } from '@/lib/demo'
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -14,6 +15,9 @@ export async function proxy(request: NextRequest) {
     }
     return response
   }
+
+  // Local demo mode (dev only, no Supabase keys) — no user session to check
+  if (DEMO_MODE) return response
 
   // ── User routes ──────────────────────────────────────────────────────────
   // Protected by Supabase session
