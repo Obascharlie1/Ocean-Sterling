@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { ArrowLeft, CheckCircle, Delete, Loader2 } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { Delete, Loader2, MessageCircle, KeyRound, Check } from 'lucide-react'
 import { TopBar } from '@/components/dashboard/TopBar'
+import { Card, PageHeader, SuccessState, SummaryRow, ErrorNote } from '@/components/dashboard/ui'
 
-const PIN_LENGTH  = 8
+const PIN_LENGTH = 8
 
 const DEFAULT_INSTRUCTIONS =
   'Enter the 8-digit withdrawal authorization code (OTP). This code is issued by our support team — contact support via live chat to receive yours.'
@@ -17,16 +17,22 @@ interface PendingWithdrawal {
   method: string
   fee: string
   youReceive: string
+  destination?: string
 }
 
-type Phase = 'enter' | 'submitting' | 'success' | 'error'
+type Phase = 'enter' | 'submitting' | 'success'
+
+function openSupportChat() {
+  const w = window as unknown as { chaport?: { q: (...a: unknown[]) => void } }
+  w.chaport?.q('open')
+}
 
 export default function WithdrawPinPage() {
-  const [pin,     setPin]     = useState<number[]>([])
-  const [phase,   setPhase]   = useState<Phase>('enter')
-  const [shake,   setShake]   = useState(false)
+  const [pin,      setPin]      = useState<string>('')
+  const [phase,    setPhase]    = useState<Phase>('enter')
+  const [shake,    setShake]    = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
-  const [pending, setPending] = useState<PendingWithdrawal | null>(null)
+  const [pending,  setPending]  = useState<PendingWithdrawal | null>(null)
 
   // Admin-customizable copy + the support-issued OTP, from payment config.
   const [otp,          setOtp]          = useState('')
@@ -48,13 +54,8 @@ export default function WithdrawPinPage() {
       .catch(() => {})
   }, [])
 
-  function triggerShake() {
-    setShake(true)
-    setTimeout(() => { setShake(false); setPin([]); setErrorMsg('') }, 600)
-  }
-
-  async function submitWithdrawal() {
-    if (!pending) { setPhase('error'); return }
+  const submitWithdrawal = useCallback(async () => {
+    if (!pending) { setErrorMsg('Your withdrawal details expired. Please start again.'); return }
     setPhase('submitting')
 
     const res = await fetch('/api/transactions', {
@@ -64,166 +65,190 @@ export default function WithdrawPinPage() {
         type:   'Withdrawal',
         amount: pending.amount,
         method: pending.method,
+        note:   pending.destination ?? null,
       }),
     })
 
     if (!res.ok) {
-      setErrorMsg('Failed to submit withdrawal. Please try again.')
+      setErrorMsg('We couldn’t submit your withdrawal. Please try again.')
       setPhase('enter')
-      setPin([])
+      setPin('')
       return
     }
 
     sessionStorage.removeItem('qv_withdrawal')
     setPhase('success')
-  }
+  }, [pending])
 
-  function handleDigit(digit: number) {
-    if (pin.length >= PIN_LENGTH || phase === 'submitting') return
-    const next = [...pin, digit]
+  const verify = useCallback((code: string) => {
+    setTimeout(() => {
+      if (!otp || code === otp) {
+        submitWithdrawal()
+      } else {
+        setErrorMsg('That code isn’t valid. Contact support to receive your withdrawal code.')
+        setShake(true)
+        setTimeout(() => { setShake(false); setPin('') }, 550)
+      }
+    }, 180)
+  }, [otp, submitWithdrawal])
+
+  const press = useCallback((d: string) => {
+    if (phase !== 'enter' || pin.length >= PIN_LENGTH) return
+    setErrorMsg('')
+    const next = pin + d
     setPin(next)
+    if (next.length === PIN_LENGTH) verify(next)
+  }, [phase, pin, verify])
 
-    if (next.length === PIN_LENGTH) {
-      const entered = next.join('')
-      setTimeout(() => {
-        if (!otp || entered === otp) {
-          submitWithdrawal()
-        } else {
-          setErrorMsg('Incorrect code. Please contact support to obtain your withdrawal OTP.')
-          triggerShake()
-        }
-      }, 150)
+  const back = useCallback(() => setPin(p => p.slice(0, -1)), [])
+
+  // Physical keyboard support.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (/^\d$/.test(e.key)) press(e.key)
+      else if (e.key === 'Backspace') back()
     }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [press, back])
+
+  const fmt = (n: number | string) =>
+    `$${Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+
+  if (phase === 'success') {
+    return (
+      <div>
+        <TopBar title="Withdraw" />
+        <div className="px-4 sm:px-8 py-12 sm:py-16">
+          <SuccessState
+            title="Withdrawal submitted"
+            body={resultMsg}
+            meta={pending && (
+              <p className="text-sm text-slate-500">
+                <span className="font-semibold text-dark-base dark:text-white tabular-nums">{fmt(pending.amount)}</span> via {pending.method}
+              </p>
+            )}
+          />
+        </div>
+      </div>
+    )
   }
 
-  function handleBackspace() { setPin(prev => prev.slice(0, -1)) }
-  function handleClear()     { setPin([]) }
-
-  const padKeys: (number | 'clear' | 'backspace')[] = [
-    1, 2, 3,
-    4, 5, 6,
-    7, 8, 9,
-    'clear', 0, 'backspace',
-  ]
-
-  const displayAmount = pending
-    ? `$${pending.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-    : '—'
+  const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'del']
 
   return (
     <div>
-      <TopBar title="Withdrawal PIN" subtitle="Enter your PIN to confirm" />
+      <TopBar title="Withdraw" />
+      <div className="px-4 sm:px-8 py-8 sm:py-10 max-w-5xl mx-auto">
+        <PageHeader back={{ href: '/dashboard/withdraw', label: 'Edit details' }} eyebrow="Step 2 of 2" title="Verify your withdrawal" />
 
-      <div className="p-6 max-w-4xl mx-auto">
-        <Link
-          href="/dashboard/withdraw"
-          className="flex items-center gap-2 text-sm text-slate-500 hover:text-dark-base dark:hover:text-white mb-6 transition-colors"
-        >
-          <ArrowLeft size={14} />
-          Back to withdrawal
-        </Link>
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-6 items-start">
+          <Card className="p-6 sm:p-10">
+            <div className="mx-auto max-w-sm text-center">
+              <span className="mx-auto w-14 h-14 rounded-2xl bg-brand-primary/10 grid place-items-center">
+                <KeyRound size={24} className="text-brand-primary" />
+              </span>
+              <h2 className="mt-5 text-xl font-semibold tracking-tight text-dark-base dark:text-white">Enter authorization code</h2>
+              <p className="mt-2 text-sm leading-relaxed text-slate-500 dark:text-slate-400 whitespace-pre-line">{instructions}</p>
 
-        {phase === 'success' ? (
-          <div className="bg-light-base dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl p-8 text-center">
-            <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center mx-auto mb-5">
-              <CheckCircle className="text-emerald-600 dark:text-emerald-400" size={32} />
-            </div>
-            <h2 className="text-xl font-bold text-dark-base dark:text-white mb-2">Withdrawal Submitted</h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
-              Amount: <span className="font-semibold text-dark-base dark:text-white">{displayAmount}</span>
-            </p>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed whitespace-pre-line">
-              {resultMsg}
-            </p>
-            <Link
-              href="/dashboard"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-primary hover:bg-brand-dim text-white text-sm font-bold transition-colors"
-            >
-              Back to Dashboard
-            </Link>
-          </div>
-        ) : (
-          <div className="bg-light-base dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl p-8 max-w-sm mx-auto">
-            {/* Amount display */}
-            <div className="text-center mb-6">
-              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Withdrawal Amount</p>
-              <p className="text-3xl font-bold text-dark-base dark:text-white">{displayAmount}</p>
-              {pending && (
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  via {pending.method} · you receive <span className="font-semibold text-dark-base dark:text-white">${pending.youReceive}</span>
-                </p>
-              )}
-            </div>
-
-            <p className="text-center text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-5">{instructions}</p>
-
-            {/* PIN dots */}
-            <div
-              className="flex items-center justify-center gap-2 mb-6"
-              style={shake ? { animation: 'shake 0.5s ease-in-out' } : undefined}
-            >
-              {Array.from({ length: PIN_LENGTH }).map((_, i) => (
-                <div
-                  key={i}
-                  className={`w-3 h-3 rounded-full border-2 transition-all duration-150 ${
-                    i < pin.length
-                      ? 'bg-brand-primary border-brand-primary'
-                      : 'bg-transparent border-light-border dark:border-dark-border'
-                  }`}
-                />
-              ))}
-            </div>
-
-            {/* Error */}
-            {errorMsg && (
-              <p className="text-center text-xs text-brand-primary mb-4 font-medium">{errorMsg}</p>
-            )}
-
-            {/* Submitting spinner */}
-            {phase === 'submitting' && (
-              <div className="flex justify-center mb-4">
-                <Loader2 size={24} className="animate-spin text-brand-primary" />
+              {/* Code slots */}
+              <div
+                className="mt-8 grid grid-cols-8 gap-1.5 sm:gap-2"
+                style={shake ? { animation: 'os-shake 0.5s ease-in-out' } : undefined}
+              >
+                {Array.from({ length: PIN_LENGTH }).map((_, i) => {
+                  const filled = i < pin.length
+                  const active = i === pin.length && phase === 'enter'
+                  return (
+                    <div
+                      key={i}
+                      className={`aspect-[3/4] rounded-xl grid place-items-center transition ${
+                        filled
+                          ? 'bg-dark-base dark:bg-white'
+                          : active
+                            ? 'ring-2 ring-brand-primary bg-brand-primary/[0.04]'
+                            : 'ring-1 ring-black/10 dark:ring-white/15'
+                      }`}
+                    >
+                      {filled && <span className="w-2 h-2 rounded-full bg-white dark:bg-dark-base" />}
+                    </div>
+                  )
+                })}
               </div>
-            )}
 
-            {/* Number pad */}
-            <div className="grid grid-cols-3 gap-3 justify-items-center">
-              {padKeys.map((key, i) => {
-                if (key === 'backspace') {
-                  return (
-                    <button key={i} type="button" onClick={handleBackspace} disabled={phase === 'submitting'}
-                      className="w-16 h-16 flex items-center justify-center border border-light-border dark:border-dark-border text-slate-500 dark:text-slate-400 hover:border-brand-primary hover:text-brand-primary transition-colors disabled:opacity-40">
-                      <Delete size={18} />
+              <div className="mt-5 min-h-[44px]">
+                {phase === 'submitting' ? (
+                  <p className="inline-flex items-center gap-2 text-sm text-slate-500">
+                    <Loader2 size={16} className="animate-spin text-brand-primary" /> Verifying…
+                  </p>
+                ) : errorMsg ? (
+                  <ErrorNote>{errorMsg}</ErrorNote>
+                ) : null}
+              </div>
+
+              {/* Keypad */}
+              <div className="mt-2 grid grid-cols-3 gap-2.5">
+                {keys.map((k, i) =>
+                  k === '' ? <span key={i} /> : (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => (k === 'del' ? back() : press(k))}
+                      disabled={phase !== 'enter'}
+                      aria-label={k === 'del' ? 'Delete' : k}
+                      className="h-14 rounded-2xl bg-black/[0.03] dark:bg-white/[0.05] text-xl font-semibold text-dark-base dark:text-white grid place-items-center hover:bg-black/[0.07] dark:hover:bg-white/[0.1] active:scale-95 transition disabled:opacity-40"
+                    >
+                      {k === 'del' ? <Delete size={20} /> : k}
                     </button>
                   )
-                }
-                if (key === 'clear') {
-                  return (
-                    <button key={i} type="button" onClick={handleClear} disabled={phase === 'submitting'}
-                      className="w-16 h-16 flex items-center justify-center border border-light-border dark:border-dark-border text-slate-500 dark:text-slate-400 hover:border-brand-primary hover:text-brand-primary transition-colors text-xs font-bold uppercase tracking-wider disabled:opacity-40">
-                      CLR
-                    </button>
-                  )
-                }
-                return (
-                  <button key={i} type="button" onClick={() => handleDigit(key)} disabled={phase === 'submitting'}
-                    className="w-16 h-16 flex items-center justify-center border border-light-border dark:border-dark-border text-dark-base dark:text-white hover:border-brand-primary hover:text-brand-primary hover:bg-brand-primary/5 transition-colors text-lg font-bold disabled:opacity-40">
-                    {key}
-                  </button>
-                )
-              })}
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={openSupportChat}
+                className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-brand-primary hover:opacity-80 transition"
+              >
+                <MessageCircle size={16} /> Get your code from support
+              </button>
             </div>
-          </div>
-        )}
+          </Card>
+
+          {/* Summary */}
+          <Card className="p-6 xl:sticky xl:top-24">
+            <h2 className="text-[17px] font-semibold text-dark-base dark:text-white">Withdrawal</h2>
+            {pending ? (
+              <div className="mt-4">
+                <SummaryRow label="Amount" value={fmt(pending.amount)} />
+                <SummaryRow label="Fee" value={Number(pending.fee) ? `−${fmt(pending.fee)}` : 'Free'} />
+                <SummaryRow label="Method" value={pending.method} />
+                {pending.destination && (
+                  <div className="py-2">
+                    <p className="text-sm text-slate-500 dark:text-slate-400">To</p>
+                    <p className="mt-0.5 text-sm font-medium text-dark-base dark:text-white break-all">{pending.destination.replace(/^[^:]+:\s*/, '')}</p>
+                  </div>
+                )}
+                <div className="my-2 h-px bg-black/[0.06] dark:bg-white/[0.07]" />
+                <SummaryRow label="You'll receive" value={fmt(pending.youReceive)} strong />
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-slate-500">No withdrawal in progress. Go back to start one.</p>
+            )}
+            <div className="mt-5 flex items-center gap-2 rounded-2xl bg-brand-primary/[0.06] px-4 py-3 text-xs text-slate-600 dark:text-slate-300">
+              <Check size={14} className="text-brand-primary flex-shrink-0" />
+              Funds stay secure until your code is verified.
+            </div>
+          </Card>
+        </div>
       </div>
 
       <style>{`
-        @keyframes shake {
+        @keyframes os-shake {
           0%, 100% { transform: translateX(0); }
-          20%  { transform: translateX(-8px); }
-          40%  { transform: translateX(8px); }
-          60%  { transform: translateX(-6px); }
-          80%  { transform: translateX(6px); }
+          20% { transform: translateX(-8px); }
+          40% { transform: translateX(8px); }
+          60% { transform: translateX(-5px); }
+          80% { transform: translateX(5px); }
         }
       `}</style>
     </div>

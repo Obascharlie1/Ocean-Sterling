@@ -2,9 +2,16 @@
 
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
+import { AnimatePresence, motion } from 'framer-motion'
+import {
+  Upload, FileText, Loader2, BookOpen, Car, IdCard, Check, X, Lock, ShieldCheck,
+  Hourglass, BadgeCheck, ArrowRight,
+} from 'lucide-react'
 import { TopBar } from '@/components/dashboard/TopBar'
-import { Upload, CheckCircle, FileText, ArrowLeft, Shield, Loader2 } from 'lucide-react'
+import { Card, PageHeader, PrimaryButton, ErrorNote } from '@/components/dashboard/ui'
+import { Reveal, EASE } from '@/components/dashboard/motion'
 import { createClient } from '@/lib/supabase/client'
+import { DEMO_MODE, DEMO_PROFILE } from '@/lib/demo'
 
 type DocType = 'passport' | 'drivers_license' | 'national_id'
 
@@ -12,12 +19,13 @@ interface UploadedFile {
   name: string
   size: string
   file: File
+  preview: string | null
 }
 
-const docTypes: { value: DocType; label: string; desc: string }[] = [
-  { value: 'passport',        label: 'Passport',          desc: 'International passport — any country' },
-  { value: 'drivers_license', label: "Driver's License",  desc: 'Valid government-issued license' },
-  { value: 'national_id',     label: 'National ID Card',  desc: 'Government-issued national identity card' },
+const docTypes: { value: DocType; label: string; desc: string; icon: React.ElementType }[] = [
+  { value: 'passport',        label: 'Passport',         desc: 'Photo page only',      icon: BookOpen },
+  { value: 'drivers_license', label: "Driver's license", desc: 'Front and back',       icon: Car },
+  { value: 'national_id',     label: 'National ID',      desc: 'Front and back',       icon: IdCard },
 ]
 
 const docTypeLabels: Record<DocType, string> = {
@@ -26,45 +34,87 @@ const docTypeLabels: Record<DocType, string> = {
   national_id:     'National ID',
 }
 
+const REQUIREMENTS = [
+  'Valid and not expired',
+  'All four corners visible',
+  'Clear, glare-free and legible',
+  'JPG, PNG or PDF up to 10 MB',
+]
+
 function formatSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-function FileUploadArea({ label, file, onFile }: { label: string; file: UploadedFile | null; onFile: (f: UploadedFile) => void }) {
-  const inputRef = useRef<HTMLInputElement>(null)
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0]
-    if (f) onFile({ name: f.name, size: formatSize(f.size), file: f })
+function toUpload(f: File): UploadedFile {
+  return {
+    name: f.name,
+    size: formatSize(f.size),
+    file: f,
+    preview: f.type.startsWith('image/') ? URL.createObjectURL(f) : null,
   }
+}
+
+function DropZone({ label, file, onFile }: { label: string; file: UploadedFile | null; onFile: (f: UploadedFile | null) => void }) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [over, setOver] = useState(false)
+
+  function take(f: File | undefined) {
+    if (f) onFile(toUpload(f))
+  }
+
   return (
     <div>
-      <p className="block text-xs font-semibold text-dark-base dark:text-white uppercase tracking-wider mb-2">{label}</p>
-      <button
-        type="button"
-        onClick={() => inputRef.current?.click()}
-        className={`w-full border-2 border-dashed transition-colors p-6 text-center ${
-          file ? 'border-emerald-400 bg-emerald-50 dark:bg-emerald-900/10' : 'border-light-border dark:border-dark-border hover:border-brand-primary hover:bg-brand-primary/5'
-        }`}
-      >
+      <p className="text-sm font-medium text-dark-base dark:text-white mb-2">{label}</p>
+      <AnimatePresence mode="wait" initial={false}>
         {file ? (
-          <div className="flex items-center justify-center gap-3">
-            <CheckCircle size={20} className="text-emerald-500 flex-shrink-0" />
-            <div className="text-left">
-              <p className="text-sm font-semibold text-dark-base dark:text-white truncate max-w-[200px]">{file.name}</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">{file.size}</p>
+          <motion.div
+            key="file"
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.25, ease: EASE }}
+            className="flex items-center gap-4 rounded-2xl ring-1 ring-brand-primary/40 bg-brand-primary/[0.05] p-3 pr-4"
+          >
+            <span className="w-16 h-12 rounded-xl overflow-hidden bg-brand-primary/10 grid place-items-center flex-shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {file.preview ? <img src={file.preview} alt="" className="w-full h-full object-cover" /> : <FileText size={18} className="text-brand-primary" />}
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-dark-base dark:text-white truncate">{file.name}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1"><Check size={12} className="text-brand-primary" /> {file.size} · Ready</p>
             </div>
-          </div>
+            <button type="button" onClick={() => onFile(null)} aria-label={`Remove ${label}`} className="w-8 h-8 rounded-full grid place-items-center text-slate-500 hover:bg-black/5 dark:hover:bg-white/10 transition">
+              <X size={15} />
+            </button>
+          </motion.div>
         ) : (
-          <div>
-            <Upload size={24} className="mx-auto text-slate-400 mb-2" />
-            <p className="text-sm font-medium text-dark-base dark:text-white">Click to upload</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">JPG, PNG or PDF · Max 10 MB</p>
-          </div>
+          <motion.button
+            key="empty"
+            type="button"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => inputRef.current?.click()}
+            onDragOver={e => { e.preventDefault(); setOver(true) }}
+            onDragLeave={() => setOver(false)}
+            onDrop={e => { e.preventDefault(); setOver(false); take(e.dataTransfer.files?.[0]) }}
+            className={`w-full rounded-2xl border border-dashed py-8 text-center transition ${
+              over
+                ? 'border-brand-primary bg-brand-primary/[0.06] scale-[1.01]'
+                : 'border-black/15 dark:border-white/15 hover:border-brand-primary hover:bg-brand-primary/[0.03]'
+            }`}
+          >
+            <span className={`mx-auto w-11 h-11 rounded-full grid place-items-center transition ${over ? 'bg-brand-primary text-white' : 'bg-slate-100 dark:bg-white/[0.06] text-slate-500'}`}>
+              <Upload size={18} />
+            </span>
+            <p className="mt-3 text-sm font-medium text-dark-base dark:text-white">{over ? 'Drop to upload' : 'Drag a file here, or click to browse'}</p>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">JPG, PNG or PDF · max 10 MB</p>
+          </motion.button>
         )}
-      </button>
-      <input ref={inputRef} type="file" accept="image/*,.pdf" className="hidden" onChange={handleChange} />
+      </AnimatePresence>
+      <input ref={inputRef} type="file" accept="image/*,.pdf" className="hidden" onChange={e => take(e.target.files?.[0])} />
     </div>
   )
 }
@@ -76,16 +126,19 @@ export default function KYCPage() {
   const [submitted, setSubmitted] = useState(false)
   const [loading,   setLoading]   = useState(false)
   const [error,     setError]     = useState('')
-  const [userId,    setUserId]    = useState<string | null>(null)
   const [kycStatus, setKycStatus] = useState<string>('None')
   const [fetchingStatus, setFetchingStatus] = useState(true)
 
   useEffect(() => {
     async function load() {
+      if (DEMO_MODE) {
+        setKycStatus(DEMO_PROFILE.kyc_status)
+        setFetchingStatus(false)
+        return
+      }
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
-      setUserId(user.id)
       const { data } = await supabase.from('profiles').select('kyc_status').eq('id', user.id).single()
       setKycStatus(data?.kyc_status ?? 'None')
       setFetchingStatus(false)
@@ -95,12 +148,20 @@ export default function KYCPage() {
 
   const needsBack = docType !== 'passport'
   const canSubmit = frontFile !== null && (!needsBack || backFile !== null)
+  const step = canSubmit ? 3 : frontFile ? 2 : 1
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!canSubmit) return
     setLoading(true)
     setError('')
+
+    if (DEMO_MODE) {
+      await new Promise(r => setTimeout(r, 900))
+      setLoading(false)
+      setSubmitted(true)
+      return
+    }
 
     const form = new FormData()
     form.append('front', frontFile!.file)
@@ -123,182 +184,219 @@ export default function KYCPage() {
   if (fetchingStatus) {
     return (
       <div>
-        <TopBar title="KYC Verification" />
-        <div className="flex items-center justify-center h-64">
-          <Loader2 size={24} className="animate-spin text-brand-primary" />
+        <TopBar title="Verification" />
+        <div className="flex items-center justify-center h-72">
+          <Loader2 size={22} className="animate-spin text-brand-primary" />
         </div>
       </div>
     )
   }
 
-  // Already verified
   if (kycStatus === 'Verified') {
     return (
-      <div>
-        <TopBar title="KYC Verification" />
-        <div className="p-6 max-w-lg mx-auto mt-12 text-center">
-          <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/20 flex items-center justify-center mx-auto mb-5">
-            <CheckCircle size={32} className="text-emerald-500" />
-          </div>
-          <h2 className="text-xl font-bold text-dark-base dark:text-white mb-2">Identity Verified</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed mb-6">
-            Your identity has been successfully verified. You have full access to all platform features.
-          </p>
-          <Link href="/dashboard" className="inline-flex items-center gap-2 px-6 py-3 bg-brand-primary text-white font-bold text-sm hover:bg-brand-dim transition-colors">
-            Back to Dashboard
-          </Link>
-        </div>
-      </div>
+      <StatusScreen
+        icon={BadgeCheck}
+        tone="success"
+        title="You're verified"
+        body="Your identity has been confirmed. Withdrawals, higher limits and every plan are unlocked."
+        perks={['Unlimited withdrawals', 'Higher deposit limits', 'All investment plans']}
+      />
     )
   }
 
-  // Already pending
-  if (kycStatus === 'Pending' && !submitted) {
+  if (kycStatus === 'Pending' || submitted) {
     return (
-      <div>
-        <TopBar title="KYC Verification" />
-        <div className="p-6 max-w-lg mx-auto mt-12 text-center">
-          <div className="w-16 h-16 bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center mx-auto mb-5">
-            <Shield size={32} className="text-amber-500" />
-          </div>
-          <h2 className="text-xl font-bold text-dark-base dark:text-white mb-2">Verification Pending</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed mb-6">
-            Your documents are under review. We&apos;ll notify you within <strong className="text-dark-base dark:text-white">24–48 hours</strong> once verification is complete.
-          </p>
-          <Link href="/dashboard" className="inline-flex items-center gap-2 px-6 py-3 bg-brand-primary text-white font-bold text-sm hover:bg-brand-dim transition-colors">
-            Back to Dashboard
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
-  if (submitted) {
-    return (
-      <div>
-        <TopBar title="KYC Verification" />
-        <div className="p-6 max-w-lg mx-auto mt-12 text-center">
-          <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/20 flex items-center justify-center mx-auto mb-5">
-            <CheckCircle size={32} className="text-emerald-500" />
-          </div>
-          <h2 className="text-xl font-bold text-dark-base dark:text-white mb-2">Documents Submitted</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed mb-6">
-            Your identity documents are under review. We&apos;ll notify you within{' '}
-            <strong className="text-dark-base dark:text-white">24–48 hours</strong> once verification is complete.
-          </p>
-          <div className="bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border p-4 mb-6 text-left space-y-2">
-            <div className="flex items-center gap-2 text-sm">
-              <FileText size={14} className="text-slate-400" />
-              <span className="text-dark-base dark:text-white font-medium">{frontFile?.name}</span>
-              <span className="text-slate-500 dark:text-slate-400 text-xs ml-auto">{frontFile?.size}</span>
-            </div>
-            {backFile && (
-              <div className="flex items-center gap-2 text-sm">
-                <FileText size={14} className="text-slate-400" />
-                <span className="text-dark-base dark:text-white font-medium">{backFile.name}</span>
-                <span className="text-slate-500 dark:text-slate-400 text-xs ml-auto">{backFile.size}</span>
-              </div>
-            )}
-          </div>
-          <Link href="/dashboard" className="inline-flex items-center gap-2 px-6 py-3 bg-brand-primary text-white font-bold text-sm hover:bg-brand-dim transition-colors">
-            Back to Dashboard
-          </Link>
-        </div>
-      </div>
+      <StatusScreen
+        icon={Hourglass}
+        tone="pending"
+        title={submitted ? 'Documents submitted' : 'Verification in review'}
+        body="Our compliance team is reviewing your documents. You'll get a notification within 24–48 hours."
+        files={submitted ? [frontFile, backFile].filter(Boolean) as UploadedFile[] : undefined}
+      />
     )
   }
 
   return (
     <div>
-      <TopBar title="KYC Verification" subtitle="Upload your identity document to verify your account" />
-      <div className="p-4 sm:p-6 max-w-xl mx-auto space-y-6">
-        <Link href="/dashboard" className="flex items-center gap-2 text-sm text-slate-500 hover:text-dark-base dark:hover:text-white transition-colors">
-          <ArrowLeft size={15} /> Back to Dashboard
-        </Link>
+      <TopBar title="Verification" />
+      <div className="px-4 sm:px-8 py-6 sm:py-10 max-w-6xl mx-auto">
+        <PageHeader
+          back={{ href: '/dashboard', label: 'Overview' }}
+          eyebrow="Identity check"
+          title="Verify your identity"
+          subtitle="A quick, one-time check required by financial regulation. It takes about two minutes."
+        />
 
-        <div className="flex gap-3 p-4 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border">
-          <Shield size={18} className="text-brand-primary flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-semibold text-dark-base dark:text-white">Why we need this</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              KYC verification is required by financial regulations to protect your account and enable full withdrawal access.
-            </p>
+        {/* Stepper */}
+        <Reveal className="mb-8 flex items-center gap-2 sm:gap-3 text-sm overflow-x-auto">
+          {['Document', 'Upload', 'Submit'].map((s, i) => {
+            const n = i + 1
+            const done = step > n
+            const active = step === n
+            return (
+              <div key={s} className="flex items-center gap-2 sm:gap-3">
+                {i > 0 && (
+                  <span className="relative h-px w-8 sm:w-12 bg-black/15 dark:bg-white/15 overflow-hidden">
+                    <motion.span className="absolute inset-0 bg-brand-primary origin-left" initial={false} animate={{ scaleX: step >= n ? 1 : 0 }} transition={{ duration: 0.4, ease: EASE }} />
+                  </span>
+                )}
+                <span className={`inline-flex items-center gap-2 whitespace-nowrap font-medium transition-colors ${active || done ? 'text-dark-base dark:text-white' : 'text-slate-400'}`}>
+                  <span className={`w-6 h-6 rounded-full grid place-items-center text-xs font-semibold transition-colors ${
+                    done ? 'bg-brand-primary text-white' : active ? 'bg-dark-base text-white dark:bg-white dark:text-dark-base' : 'ring-1 ring-black/15 dark:ring-white/20'
+                  }`}>
+                    {done ? <Check size={12} strokeWidth={3} /> : n}
+                  </span>
+                  {s}
+                </span>
+              </div>
+            )
+          })}
+        </Reveal>
+
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-6 items-start">
+          <div className="space-y-6">
+            <Reveal delay={0.05}>
+              <Card className="p-6">
+                <h2 className="text-[17px] font-semibold text-dark-base dark:text-white">Choose a document</h2>
+                <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {docTypes.map(dt => {
+                    const on = docType === dt.value
+                    return (
+                      <button
+                        key={dt.value}
+                        type="button"
+                        onClick={() => { if (!on) { setDocType(dt.value); setFrontFile(null); setBackFile(null) } }}
+                        className={`relative text-left rounded-2xl p-4 transition active:scale-[0.98] ${
+                          on ? 'ring-2 ring-brand-primary bg-brand-primary/[0.05]' : 'ring-1 ring-black/[0.08] dark:ring-white/10 hover:ring-black/20 dark:hover:ring-white/25'
+                        }`}
+                      >
+                        <AnimatePresence>
+                          {on && (
+                            <motion.span
+                              initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
+                              className="absolute top-3 right-3 w-5 h-5 rounded-full bg-brand-primary grid place-items-center"
+                            >
+                              <Check size={12} strokeWidth={3} className="text-white" />
+                            </motion.span>
+                          )}
+                        </AnimatePresence>
+                        <dt.icon size={20} className={on ? 'text-brand-primary' : 'text-slate-500 dark:text-slate-400'} />
+                        <p className="mt-3 text-sm font-semibold text-dark-base dark:text-white">{dt.label}</p>
+                        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{dt.desc}</p>
+                      </button>
+                    )
+                  })}
+                </div>
+              </Card>
+            </Reveal>
+
+            <Reveal delay={0.1}>
+              <Card className="p-6 space-y-5">
+                <h2 className="text-[17px] font-semibold text-dark-base dark:text-white">Upload photos</h2>
+                <DropZone label={needsBack ? 'Front side' : 'Photo page'} file={frontFile} onFile={setFrontFile} />
+                <AnimatePresence initial={false}>
+                  {needsBack && (
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3, ease: EASE }} className="overflow-hidden">
+                      <DropZone label="Back side" file={backFile} onFile={setBackFile} />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </Card>
+            </Reveal>
           </div>
-        </div>
 
-        {error && (
-          <div className="px-4 py-3 bg-brand-primary/10 border border-brand-primary/30 text-brand-primary text-sm">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <p className="block text-xs font-semibold text-dark-base dark:text-white uppercase tracking-wider mb-3">Select Document Type</p>
-            <div className="space-y-2">
-              {docTypes.map(dt => (
-                <label
-                  key={dt.value}
-                  className={`flex items-start gap-3 p-4 border cursor-pointer transition-colors ${
-                    docType === dt.value ? 'border-brand-primary bg-brand-primary/5' : 'border-light-border dark:border-dark-border hover:border-brand-primary/50'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="docType"
-                    value={dt.value}
-                    checked={docType === dt.value}
-                    onChange={() => { setDocType(dt.value); setFrontFile(null); setBackFile(null) }}
-                    className="mt-0.5 accent-brand-primary flex-shrink-0"
-                  />
-                  <div>
-                    <p className="text-sm font-semibold text-dark-base dark:text-white">{dt.label}</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{dt.desc}</p>
-                  </div>
-                </label>
-              ))}
+          <Reveal delay={0.15} className="xl:sticky xl:top-24 space-y-4">
+            <Card className="p-6">
+              <h2 className="text-[17px] font-semibold text-dark-base dark:text-white">Before you submit</h2>
+              <ul className="mt-4 space-y-2.5">
+                {REQUIREMENTS.map(req => (
+                  <li key={req} className="flex items-start gap-2.5 text-sm text-slate-600 dark:text-slate-300">
+                    <span className="mt-0.5 w-4 h-4 rounded-full bg-brand-primary/12 text-brand-primary grid place-items-center flex-shrink-0">
+                      <Check size={10} strokeWidth={3} />
+                    </span>
+                    {req}
+                  </li>
+                ))}
+              </ul>
+              {error && <div className="mt-5"><ErrorNote>{error}</ErrorNote></div>}
+              <div className="mt-6">
+                <PrimaryButton loading={loading} disabled={!canSubmit}>Submit for review</PrimaryButton>
+              </div>
+            </Card>
+            <div className="flex items-start gap-2.5 px-2 text-xs text-slate-500 dark:text-slate-400">
+              <Lock size={14} className="mt-0.5 flex-shrink-0 text-brand-primary" />
+              <span>Documents are encrypted in transit and at rest, and only seen by our compliance team.</span>
             </div>
-          </div>
-
-          <div className="space-y-4">
-            <FileUploadArea
-              label={needsBack ? 'Front of Document' : 'Document Photo / Scan'}
-              file={frontFile}
-              onFile={setFrontFile}
-            />
-            {needsBack && (
-              <FileUploadArea label="Back of Document" file={backFile} onFile={setBackFile} />
-            )}
-          </div>
-
-          <div className="bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border p-4">
-            <p className="text-xs font-semibold text-dark-base dark:text-white mb-2">Document Requirements</p>
-            <ul className="space-y-1">
-              {[
-                'Document must be valid and not expired',
-                'All four corners must be visible',
-                'Text must be clearly legible — no blur',
-                'Accepted: JPG, PNG, PDF (max 10 MB)',
-              ].map(req => (
-                <li key={req} className="flex items-start gap-2 text-xs text-slate-500 dark:text-slate-400">
-                  <span className="w-1 h-1 bg-brand-primary flex-shrink-0 mt-1.5" />
-                  {req}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <button
-            type="submit"
-            disabled={!canSubmit || loading}
-            className="w-full bg-brand-primary hover:bg-brand-dim disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3.5 text-sm flex items-center justify-center gap-2 transition-colors"
-          >
-            {loading
-              ? <><Loader2 size={16} className="animate-spin" /> Submitting…</>
-              : 'Submit for Verification'
-            }
-          </button>
+          </Reveal>
         </form>
+      </div>
+    </div>
+  )
+}
+
+function StatusScreen({ icon: Icon, tone, title, body, perks, files }: {
+  icon: React.ElementType
+  tone: 'success' | 'pending'
+  title: string
+  body: string
+  perks?: string[]
+  files?: UploadedFile[]
+}) {
+  const ok = tone === 'success'
+  return (
+    <div>
+      <TopBar title="Verification" verified={ok} />
+      <div className="px-4 sm:px-8 py-10 sm:py-16">
+        <Reveal>
+          <Card className="relative overflow-hidden max-w-lg mx-auto px-8 py-12 text-center">
+            <div className={`pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full blur-[90px] ${ok ? 'bg-brand-primary/15' : 'bg-amber-400/15'}`} />
+            <motion.div
+              initial={{ scale: 0.6, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 18, delay: 0.1 }}
+              className="relative mx-auto w-20 h-20"
+            >
+              <span className={`absolute inset-0 rounded-full animate-ping [animation-iteration-count:2] ${ok ? 'bg-brand-primary/15' : 'bg-amber-400/20'}`} />
+              <span className={`relative w-20 h-20 rounded-full grid place-items-center shadow-lg ${ok ? 'bg-brand-primary shadow-brand-primary/30' : 'bg-amber-500 shadow-amber-500/30'}`}>
+                <Icon size={34} strokeWidth={2} className="text-white" />
+              </span>
+            </motion.div>
+            <h2 className="relative mt-7 text-2xl font-semibold tracking-tight text-dark-base dark:text-white">{title}</h2>
+            <p className="relative mt-3 text-[15px] leading-relaxed text-slate-500 dark:text-slate-400">{body}</p>
+
+            {perks && (
+              <ul className="relative mt-6 space-y-2 text-left max-w-xs mx-auto">
+                {perks.map((p, i) => (
+                  <motion.li
+                    key={p}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.35 + i * 0.08, duration: 0.4, ease: EASE }}
+                    className="flex items-center gap-2.5 text-sm text-dark-base dark:text-white"
+                  >
+                    <ShieldCheck size={16} className="text-brand-primary flex-shrink-0" /> {p}
+                  </motion.li>
+                ))}
+              </ul>
+            )}
+
+            {files && files.length > 0 && (
+              <div className="relative mt-6 rounded-2xl bg-black/[0.03] dark:bg-white/[0.04] divide-y divide-black/[0.06] dark:divide-white/[0.07] text-left">
+                {files.map(f => (
+                  <div key={f.name} className="flex items-center gap-3 px-4 py-3 text-sm">
+                    <FileText size={15} className="text-slate-400" />
+                    <span className="flex-1 truncate font-medium text-dark-base dark:text-white">{f.name}</span>
+                    <span className="text-xs text-slate-500">{f.size}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <Link href="/dashboard" className="relative mt-8 inline-flex items-center gap-2 h-11 px-6 rounded-full bg-dark-base text-white dark:bg-white dark:text-dark-base text-sm font-semibold hover:opacity-90 active:scale-[0.98] transition">
+              Back to overview <ArrowRight size={15} />
+            </Link>
+          </Card>
+        </Reveal>
       </div>
     </div>
   )

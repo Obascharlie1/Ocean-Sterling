@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { motion } from 'framer-motion'
 import {
   ArrowDownLeft, ArrowUpRight, Plus, Minus, TrendingUp, Wallet, Layers,
   ShieldAlert, X, Loader2, ChevronRight, Sparkles,
@@ -10,6 +11,7 @@ import { TopBar } from '@/components/dashboard/TopBar'
 import { createClient } from '@/lib/supabase/client'
 import { DEMO_MODE, DEMO_PROFILE, DEMO_TRANSACTIONS } from '@/lib/demo'
 import { useCurrency } from '@/lib/currency'
+import { Money, CountUp, Reveal, useCountUp, EASE, staggerParent, staggerChild } from '@/components/dashboard/motion'
 
 interface Profile {
   full_name: string
@@ -89,13 +91,14 @@ export default function DashboardPage() {
   const [kycDismissed, setKycDismissed] = useState(false)
   const [hover,        setHover]        = useState<number | null>(null)
   const chartRef = useRef<HTMLDivElement>(null)
-  const { format: money, parts } = useCurrency()
+  const { convert, partsValue } = useCurrency()
+  const markets = useLiveMarkets()
 
   useEffect(() => {
     async function load() {
       if (DEMO_MODE) {
         setProfile(DEMO_PROFILE)
-        setTransactions(DEMO_TRANSACTIONS)
+        setTransactions(DEMO_TRANSACTIONS.slice(0, 6))
         setLoading(false)
         return
       }
@@ -121,6 +124,8 @@ export default function DashboardPage() {
     .filter(t => t.type === 'Deposit' && t.status === 'Completed')
     .reduce((s, t) => s + t.amount, 0)
   const profitPct = deposited > 0 ? (profit / deposited) * 100 : 0
+
+  const animatedBalance = useCountUp(convert(balance), 1.4)
 
   const W = 720, H = 180
   const series = useMemo(() => buildSeries(balance, range), [balance, range])
@@ -155,8 +160,7 @@ export default function DashboardPage() {
   }
 
   const firstName = profile?.full_name?.split(' ')[0] ?? 'there'
-  const shown = hover !== null ? series[hover] : balance
-  const { symbol, whole, fraction } = parts(shown)
+  const { symbol, whole, fraction } = partsValue(hover !== null ? convert(series[hover]) : animatedBalance)
   const hp = hover !== null ? pts[hover] : null
 
   return (
@@ -209,77 +213,92 @@ export default function DashboardPage() {
         )}
 
         {/* Balance + chart */}
-        <section className="relative overflow-hidden rounded-[28px] bg-[#0B0F0D] text-white shadow-[0_30px_60px_-30px_rgba(0,0,0,0.6)]">
-          <div className="pointer-events-none absolute -top-40 -left-24 w-[520px] h-[520px] rounded-full bg-brand-primary/20 blur-[120px]" />
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:72px_100%]" />
+        <Reveal delay={0.05}>
+          <section className="relative overflow-hidden rounded-[28px] bg-[#0B0F0D] text-white shadow-[0_30px_60px_-30px_rgba(0,0,0,0.6)]">
+            <div className="pointer-events-none absolute -top-40 -left-24 w-[520px] h-[520px] rounded-full bg-brand-primary/20 blur-[120px]" />
+            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:72px_100%]" />
 
-          <div className="relative p-6 sm:p-9">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <p className="text-sm text-white/55">{hover !== null ? 'Balance at point' : 'Total balance'}</p>
-                <p className="mt-2 font-semibold tracking-tight tabular-nums leading-none">
-                  <span className="text-white/40 text-3xl sm:text-4xl align-top mr-0.5">{symbol}</span>
-                  <span className="text-5xl sm:text-6xl">{whole}</span>
-                  {fraction && <span className="text-white/40 text-3xl sm:text-4xl">.{fraction}</span>}
-                </p>
-                <div className="mt-4 flex items-center gap-2.5 text-sm">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-brand-primary/15 text-brand-secondary px-2.5 py-1 font-semibold tabular-nums">
-                    <ArrowUpRight size={14} strokeWidth={2.5} />
-                    {profitPct.toFixed(2)}%
-                  </span>
-                  <span className="text-white/55 tabular-nums">+{money(profit)} all time</span>
+            <div className="relative p-6 sm:p-9">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm text-white/55">{hover !== null ? 'Balance at point' : 'Total balance'}</p>
+                  <p className="mt-2 font-semibold tracking-tight tabular-nums leading-none">
+                    <span className="text-white/40 text-3xl sm:text-4xl align-top mr-0.5">{symbol}</span>
+                    <span className="text-5xl sm:text-6xl">{whole}</span>
+                    {fraction && <span className="text-white/40 text-3xl sm:text-4xl">.{fraction}</span>}
+                  </p>
+                  <div className="mt-4 flex items-center gap-2.5 text-sm">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-brand-primary/15 text-brand-secondary px-2.5 py-1 font-semibold tabular-nums">
+                      <ArrowUpRight size={14} strokeWidth={2.5} />
+                      <CountUp value={profitPct} decimals={2} suffix="%" />
+                    </span>
+                    <span className="text-white/55 tabular-nums"><Money usd={profit} sign="+" /> all time</span>
+                  </div>
+                </div>
+
+                <div className="flex rounded-full bg-white/[0.06] p-1 ring-1 ring-white/10">
+                  {RANGES.map(r => (
+                    <button
+                      key={r}
+                      onClick={() => setRange(r)}
+                      className={`relative px-3 h-8 text-xs font-semibold rounded-full transition-colors ${
+                        range === r ? 'text-dark-base' : 'text-white/55 hover:text-white'
+                      }`}
+                    >
+                      {range === r && (
+                        <motion.span layoutId="range-pill" className="absolute inset-0 rounded-full bg-white" transition={{ type: 'spring', stiffness: 500, damping: 38 }} />
+                      )}
+                      <span className="relative">{r}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              <div className="flex rounded-full bg-white/[0.06] p-1 ring-1 ring-white/10">
-                {RANGES.map(r => (
-                  <button
-                    key={r}
-                    onClick={() => setRange(r)}
-                    className={`px-3 h-8 text-xs font-semibold rounded-full transition ${
-                      range === r ? 'bg-white text-dark-base' : 'text-white/55 hover:text-white'
-                    }`}
-                  >
-                    {r}
-                  </button>
-                ))}
+              <div
+                ref={chartRef}
+                onMouseMove={onMove}
+                onMouseLeave={() => setHover(null)}
+                className="relative mt-8 -mx-1 cursor-crosshair"
+              >
+                <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="w-full h-[150px] sm:h-[190px] overflow-visible">
+                  <defs>
+                    <linearGradient id="balFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#1BE38A" stopOpacity="0.32" />
+                      <stop offset="100%" stopColor="#1BE38A" stopOpacity="0" />
+                    </linearGradient>
+                  </defs>
+                  <motion.path key={`a${range}`} d={area} fill="url(#balFill)" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.9, delay: 0.25 }} />
+                  <motion.path
+                    key={`l${range}`}
+                    d={line}
+                    fill="none"
+                    stroke="#1BE38A"
+                    strokeWidth="2.25"
+                    vectorEffect="non-scaling-stroke"
+                    initial={{ pathLength: 0 }}
+                    animate={{ pathLength: 1 }}
+                    transition={{ duration: 1.1, ease: EASE }}
+                  />
+                  {hp && (
+                    <line x1={hp.x} x2={hp.x} y1={0} y2={H} stroke="rgba(255,255,255,0.25)" strokeDasharray="3 4" vectorEffect="non-scaling-stroke" />
+                  )}
+                </svg>
+                {hp && (
+                  <span
+                    className="pointer-events-none absolute w-3 h-3 -ml-1.5 -mt-1.5 rounded-full bg-brand-secondary ring-4 ring-brand-secondary/25"
+                    style={{ left: `${(hp.x / W) * 100}%`, top: `${(hp.y / H) * 100}%` }}
+                  />
+                )}
               </div>
             </div>
-
-            <div
-              ref={chartRef}
-              onMouseMove={onMove}
-              onMouseLeave={() => setHover(null)}
-              className="relative mt-8 -mx-1 cursor-crosshair"
-            >
-              <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="w-full h-[150px] sm:h-[190px] overflow-visible">
-                <defs>
-                  <linearGradient id="balFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#1BE38A" stopOpacity="0.32" />
-                    <stop offset="100%" stopColor="#1BE38A" stopOpacity="0" />
-                  </linearGradient>
-                </defs>
-                <path d={area} fill="url(#balFill)" />
-                <path d={line} fill="none" stroke="#1BE38A" strokeWidth="2.25" vectorEffect="non-scaling-stroke" />
-                {hp && (
-                  <line x1={hp.x} x2={hp.x} y1={0} y2={H} stroke="rgba(255,255,255,0.25)" strokeDasharray="3 4" vectorEffect="non-scaling-stroke" />
-                )}
-              </svg>
-              {hp && (
-                <span
-                  className="pointer-events-none absolute w-3 h-3 -ml-1.5 -mt-1.5 rounded-full bg-brand-secondary ring-4 ring-brand-secondary/25"
-                  style={{ left: `${(hp.x / W) * 100}%`, top: `${(hp.y / H) * 100}%` }}
-                />
-              )}
-            </div>
-          </div>
-        </section>
+          </section>
+        </Reveal>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Stat icon={TrendingUp} label="Total profit"    value={`+${money(profit)}`}  hint="Earned across all plans" accent />
-          <Stat icon={Wallet}     label="Total deposited" value={money(deposited)} hint="Principal invested" />
-          <Link href="/dashboard/plans" className="group">
+        <motion.div variants={staggerParent} initial="hidden" animate="show" className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Stat icon={TrendingUp} label="Total profit"    value={<Money usd={profit} sign="+" />}  hint="Earned across all plans" accent />
+          <Stat icon={Wallet}     label="Total deposited" value={<Money usd={deposited} />} hint="Principal invested" />
+          <Link href="/dashboard/plans" className="group block h-full">
             <Stat
               icon={Layers}
               label="Active plan"
@@ -288,10 +307,10 @@ export default function DashboardPage() {
               link
             />
           </Link>
-        </div>
+        </motion.div>
 
         {/* Activity + markets */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <Reveal delay={0.2} className="grid grid-cols-1 lg:grid-cols-5 gap-4">
           <Card className="lg:col-span-3">
             <CardHead title="Recent activity" href="/dashboard/transactions" />
             {transactions.length === 0 ? (
@@ -303,11 +322,11 @@ export default function DashboardPage() {
                 <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Make your first deposit to get started.</p>
               </div>
             ) : (
-              <ul className="px-2 pb-2">
+              <motion.ul variants={staggerParent} initial="hidden" animate="show" className="px-2 pb-2">
                 {transactions.map(tx => {
                   const out = tx.type === 'Withdrawal'
                   return (
-                    <li key={tx.id} className="flex items-center gap-3.5 px-4 py-3 rounded-2xl hover:bg-black/[0.025] dark:hover:bg-white/[0.04] transition">
+                    <motion.li variants={staggerChild} key={tx.id} className="flex items-center gap-3.5 px-4 py-3 rounded-2xl hover:bg-black/[0.025] dark:hover:bg-white/[0.04] transition">
                       <span className={`w-10 h-10 rounded-full grid place-items-center flex-shrink-0 ${
                         out ? 'bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-300' : 'bg-brand-primary/10 text-brand-primary'
                       }`}>
@@ -321,21 +340,21 @@ export default function DashboardPage() {
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-semibold tabular-nums text-dark-base dark:text-white">
-                          {out ? '−' : '+'}{money(tx.amount)}
+                          <Money usd={tx.amount} sign={out ? '−' : '+'} />
                         </p>
                         <p className={`text-xs font-medium ${statusTone(tx.status)}`}>{tx.status}</p>
                       </div>
-                    </li>
+                    </motion.li>
                   )
                 })}
-              </ul>
+              </motion.ul>
             )}
           </Card>
 
           <Card className="lg:col-span-2">
             <CardHead title="Markets" />
             <ul className="px-2 pb-2">
-              {MARKETS.map(m => {
+              {markets.map(m => {
                 const up = m.chg >= 0
                 const min = Math.min(...m.spark), max = Math.max(...m.spark)
                 const sp = m.spark.map((v, i) => `${(i / (m.spark.length - 1)) * 64},${22 - ((v - min) / (max - min || 1)) * 20}`).join(' ')
@@ -346,7 +365,11 @@ export default function DashboardPage() {
                     </span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-dark-base dark:text-white">{m.name}</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">{money(m.price)}</p>
+                      <p className={`text-xs tabular-nums transition-colors duration-700 ${
+                        m.tick > 0 ? 'text-brand-primary' : m.tick < 0 ? 'text-rose-500' : 'text-slate-500 dark:text-slate-400'
+                      }`}>
+                        <Money usd={m.price} duration={0.8} />
+                      </p>
                     </div>
                     <svg viewBox="0 0 64 24" className="w-16 h-6">
                       <polyline points={sp} fill="none" stroke={up ? '#06C167' : '#e11d48'} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
@@ -359,10 +382,32 @@ export default function DashboardPage() {
               })}
             </ul>
           </Card>
-        </div>
+        </Reveal>
       </div>
     </div>
   )
+}
+
+// Illustrative live feed: nudges each price a little every few seconds.
+function useLiveMarkets() {
+  const [markets, setMarkets] = useState(() => MARKETS.map(m => ({ ...m, tick: 0 })))
+  useEffect(() => {
+    const id = setInterval(() => {
+      setMarkets(prev => prev.map(m => {
+        if (Math.random() < 0.4) return { ...m, tick: 0 }
+        const pct = (Math.random() - 0.48) * 0.0016
+        return {
+          ...m,
+          price: m.price * (1 + pct),
+          chg: m.chg + pct * 100,
+          spark: [...m.spark.slice(1), m.spark[m.spark.length - 1] * (1 + pct * 8)],
+          tick: Math.sign(pct),
+        }
+      }))
+    }, 2800)
+    return () => clearInterval(id)
+  }, [])
+  return markets
 }
 
 function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
@@ -389,25 +434,27 @@ function CardHead({ title, href }: { title: string; href?: string }) {
 function Stat({ icon: Icon, label, value, hint, accent, link }: {
   icon: React.ElementType
   label: string
-  value: string
+  value: React.ReactNode
   hint: string
   accent?: boolean
   link?: boolean
 }) {
   return (
-    <Card className="p-5 sm:p-6 h-full transition group-hover:ring-black/15 dark:group-hover:ring-white/15">
-      <div className="flex items-center justify-between">
-        <span className="text-sm text-slate-500 dark:text-slate-400">{label}</span>
-        <span className="w-9 h-9 rounded-full bg-slate-100 dark:bg-white/[0.06] grid place-items-center">
-          <Icon size={16} className={accent ? 'text-brand-primary' : 'text-slate-600 dark:text-slate-300'} />
-        </span>
-      </div>
-      <p className={`mt-4 text-2xl font-semibold tracking-tight tabular-nums ${accent ? 'text-brand-primary' : 'text-dark-base dark:text-white'}`}>
-        {value}
-      </p>
-      <p className={`mt-1 text-sm inline-flex items-center gap-0.5 ${link ? 'text-dark-base dark:text-white font-medium' : 'text-slate-500 dark:text-slate-400'}`}>
-        {hint}{link && <ChevronRight size={15} className="transition group-hover:translate-x-0.5" />}
-      </p>
-    </Card>
+    <motion.div variants={staggerChild} className="h-full">
+      <Card className="p-5 sm:p-6 h-full transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_20px_40px_-28px_rgba(0,0,0,0.35)] group-hover:ring-black/15 dark:group-hover:ring-white/15">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-slate-500 dark:text-slate-400">{label}</span>
+          <span className="w-9 h-9 rounded-full bg-slate-100 dark:bg-white/[0.06] grid place-items-center">
+            <Icon size={16} className={accent ? 'text-brand-primary' : 'text-slate-600 dark:text-slate-300'} />
+          </span>
+        </div>
+        <p className={`mt-4 text-2xl font-semibold tracking-tight tabular-nums ${accent ? 'text-brand-primary' : 'text-dark-base dark:text-white'}`}>
+          {value}
+        </p>
+        <p className={`mt-1 text-sm inline-flex items-center gap-0.5 ${link ? 'text-dark-base dark:text-white font-medium' : 'text-slate-500 dark:text-slate-400'}`}>
+          {hint}{link && <ChevronRight size={15} className="transition group-hover:translate-x-0.5" />}
+        </p>
+      </Card>
+    </motion.div>
   )
 }

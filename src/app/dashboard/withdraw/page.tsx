@@ -1,233 +1,220 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Landmark, CircleDollarSign, CreditCard, Loader2 } from 'lucide-react'
+import { Landmark, Bitcoin, Wallet, Loader2, Check, ShieldCheck, Lock } from 'lucide-react'
 import { TopBar } from '@/components/dashboard/TopBar'
+import { Card, PageHeader, SectionTitle, Label, AmountInput, inputCls, PrimaryButton, SummaryRow } from '@/components/dashboard/ui'
 import { createClient } from '@/lib/supabase/client'
+import { CountUp, Reveal } from '@/components/dashboard/motion'
+import { DEMO_MODE, DEMO_PROFILE } from '@/lib/demo'
 
 type Method = 'bank' | 'bitcoin' | 'paypal'
 
-const methods: { id: Method; label: string; icon: React.ElementType; fee: string; feePercent: number }[] = [
-  { id: 'bank',    label: 'Bank Transfer', icon: Landmark,          fee: 'No fee',    feePercent: 0     },
-  { id: 'bitcoin', label: 'Bitcoin',       icon: CircleDollarSign,  fee: '0.5% fee',  feePercent: 0.005 },
-  { id: 'paypal',  label: 'PayPal',        icon: CreditCard,        fee: '2.9% fee',  feePercent: 0.029 },
+const METHODS: { id: Method; label: string; icon: React.ElementType; fee: string; feePct: number; eta: string }[] = [
+  { id: 'bank',    label: 'Bank transfer', icon: Landmark, fee: 'No fee',   feePct: 0,     eta: '1–3 business days' },
+  { id: 'bitcoin', label: 'Bitcoin',       icon: Bitcoin,  fee: '0.5% fee', feePct: 0.005, eta: 'Within 1 hour' },
+  { id: 'paypal',  label: 'PayPal',        icon: Wallet,   fee: '2.9% fee', feePct: 0.029, eta: 'Within 24 hours' },
 ]
+
+const MIN_WITHDRAWAL = 10
 
 export default function WithdrawPage() {
   const router = useRouter()
-  const [balance,  setBalance]  = useState(0)
-  const [loading,  setLoading]  = useState(true)
-  const [amount,   setAmount]   = useState('')
-  const [method,   setMethod]   = useState<Method>('bank')
-  const [fields,   setFields]   = useState({
-    accountName:   '',
-    accountNumber: '',
-    sortCode:      '',
-    btcAddress:    '',
-    paypalEmail:   '',
-  })
+  const [available, setAvailable] = useState(0)
+  const [loading,   setLoading]   = useState(true)
+  const [amount,    setAmount]    = useState('')
+  const [method,    setMethod]    = useState<Method>('bank')
+  const [f, setF] = useState({ accountName: '', accountNumber: '', sortCode: '', btcAddress: '', paypalEmail: '' })
 
   useEffect(() => {
     async function load() {
+      if (DEMO_MODE) { setAvailable(DEMO_PROFILE.profit); setLoading(false); return }
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
       const { data } = await supabase.from('profiles').select('profit').eq('id', user.id).single()
-      setBalance(data?.profit ?? 0)
+      setAvailable(data?.profit ?? 0)
       setLoading(false)
     }
     load()
   }, [])
 
-  const amountNum      = parseFloat(amount) || 0
-  const selectedMethod = methods.find(m => m.id === method)!
-  const fee            = amountNum * selectedMethod.feePercent
-  const youReceive     = Math.max(0, amountNum - fee)
+  const amt      = parseFloat(amount) || 0
+  const sel      = METHODS.find(m => m.id === method)!
+  const fee      = amt * sel.feePct
+  const receive  = Math.max(0, amt - fee)
+  const fmt      = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
-  function updateField(key: keyof typeof fields, value: string) {
-    setFields(prev => ({ ...prev, [key]: value }))
-  }
+  const recipientOk =
+    method === 'bank'    ? !!(f.accountName.trim() && f.accountNumber.trim()) :
+    method === 'bitcoin' ? f.btcAddress.trim().length > 20 :
+    /\S+@\S+\.\S+/.test(f.paypalEmail)
+
+  const amountError =
+    amt > available ? 'Amount exceeds your available balance.' :
+    amt > 0 && amt < MIN_WITHDRAWAL ? `Minimum withdrawal is $${MIN_WITHDRAWAL}.` : ''
+
+  const canContinue = amt >= MIN_WITHDRAWAL && amt <= available && recipientOk
+
+  const destination =
+    method === 'bank'    ? `Bank: ${f.accountName} · ${f.accountNumber}${f.sortCode ? ` · ${f.sortCode}` : ''}` :
+    method === 'bitcoin' ? `BTC: ${f.btcAddress}` :
+                           `PayPal: ${f.paypalEmail}`
+
+  function set(key: keyof typeof f, v: string) { setF(prev => ({ ...prev, [key]: v })) }
 
   function handleContinue(e: React.FormEvent) {
     e.preventDefault()
-    // Store withdrawal details for the PIN page to read
+    if (!canContinue) return
     sessionStorage.setItem('qv_withdrawal', JSON.stringify({
-      amount: amountNum,
-      method: selectedMethod.label,
+      amount: amt,
+      method: sel.label,
       fee: fee.toFixed(2),
-      youReceive: youReceive.toFixed(2),
+      youReceive: receive.toFixed(2),
+      destination,
     }))
     router.push('/dashboard/withdraw/pin')
   }
 
   return (
     <div>
-      <TopBar title="Withdraw Funds" subtitle="Withdraw to your preferred destination" />
+      <TopBar title="Withdraw" />
+      <div className="px-4 sm:px-8 py-8 sm:py-10 max-w-6xl mx-auto">
+        <PageHeader
+          eyebrow="Cash out"
+          title="Withdraw funds"
+          subtitle="Choose where to send your money. You'll confirm the withdrawal with a one-time code on the next step."
+        />
 
-      <div className="p-6 max-w-4xl mx-auto">
+        {/* Steps */}
+        <Reveal delay={0.05} className="mb-8 flex items-center gap-3 text-sm">
+          <span className="inline-flex items-center gap-2 font-medium text-dark-base dark:text-white">
+            <span className="w-6 h-6 rounded-full bg-dark-base text-white dark:bg-white dark:text-dark-base grid place-items-center text-xs font-semibold">1</span>
+            Details
+          </span>
+          <span className="h-px w-10 bg-black/15 dark:bg-white/15" />
+          <span className="inline-flex items-center gap-2 text-slate-400">
+            <span className="w-6 h-6 rounded-full ring-1 ring-black/15 dark:ring-white/20 grid place-items-center text-xs font-semibold">2</span>
+            Verify
+          </span>
+        </Reveal>
+
         {loading ? (
           <div className="flex items-center justify-center h-64">
-            <Loader2 size={24} className="animate-spin text-brand-primary" />
+            <Loader2 size={22} className="animate-spin text-brand-primary" />
           </div>
         ) : (
-          <form onSubmit={handleContinue} className="space-y-5">
-            {/* Available balance */}
-            <div className="bg-light-base dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl p-6">
-              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                Available Balance
-              </p>
-              <p className="text-3xl font-bold text-dark-base dark:text-white">
-                ${balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </p>
-            </div>
+          <Reveal delay={0.1}>
+            <form onSubmit={handleContinue} className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-6 items-start">
+              <div className="space-y-6">
+                <Card className="p-6">
+                  <SectionTitle step={1}>How much?</SectionTitle>
+                  <AmountInput value={amount} onChange={setAmount} onMax={() => setAmount(available.toFixed(2))} />
+                  <div className="mt-3 flex items-center justify-between text-sm">
+                    <span className="text-slate-500 dark:text-slate-400">
+                      Available: <span className="font-semibold tabular-nums text-dark-base dark:text-white"><CountUp prefix="$" value={available} decimals={2} /></span>
+                    </span>
+                    {amountError && <span className="text-rose-600 dark:text-rose-400">{amountError}</span>}
+                  </div>
+                </Card>
 
-            {/* Amount input */}
-            <div className="bg-light-base dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl p-6">
-              <label className="block text-xs font-semibold text-dark-base dark:text-white uppercase tracking-wider mb-2">
-                Withdrawal Amount (USD)
-              </label>
-              <div className="flex gap-3">
-                <div className="relative flex-1">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-semibold">$</span>
-                  <input
-                    type="number"
-                    value={amount}
-                    onChange={e => setAmount(e.target.value)}
-                    placeholder="0.00"
-                    min="10"
-                    max={balance}
-                    step="0.01"
-                    className="w-full pl-8 pr-4 py-3 border border-light-border dark:border-dark-border bg-light-base dark:bg-dark-card text-dark-base dark:text-white placeholder:text-slate-400 text-sm focus:outline-none focus:border-brand-primary transition-colors"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setAmount(balance.toFixed(2))}
-                  className="px-4 py-3 border border-light-border dark:border-dark-border text-xs font-bold text-slate-500 dark:text-slate-400 hover:border-brand-primary hover:text-brand-primary transition-colors"
-                >
-                  Max
-                </button>
+                <Card className="p-6">
+                  <SectionTitle step={2}>Where to?</SectionTitle>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {METHODS.map(m => {
+                      const on = method === m.id
+                      return (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => setMethod(m.id)}
+                          className={`relative text-left rounded-2xl p-4 transition ${
+                            on
+                              ? 'ring-2 ring-brand-primary bg-brand-primary/[0.05]'
+                              : 'ring-1 ring-black/[0.08] dark:ring-white/10 hover:ring-black/20 dark:hover:ring-white/25'
+                          }`}
+                        >
+                          {on && (
+                            <span className="absolute top-3 right-3 w-5 h-5 rounded-full bg-brand-primary grid place-items-center">
+                              <Check size={12} strokeWidth={3} className="text-white" />
+                            </span>
+                          )}
+                          <m.icon size={20} className={on ? 'text-brand-primary' : 'text-slate-500 dark:text-slate-400'} />
+                          <p className="mt-3 text-sm font-semibold text-dark-base dark:text-white">{m.label}</p>
+                          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{m.fee} · {m.eta}</p>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </Card>
+
+                <Card className="p-6">
+                  <SectionTitle step={3}>Recipient details</SectionTitle>
+                  {method === 'bank' && (
+                    <div className="space-y-4">
+                      <div>
+                        <Label>Account holder name</Label>
+                        <input className={inputCls} value={f.accountName} onChange={e => set('accountName', e.target.value)} placeholder="Jane Doe" />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <Label>Account number / IBAN</Label>
+                          <input className={`${inputCls} font-mono`} value={f.accountNumber} onChange={e => set('accountNumber', e.target.value)} placeholder="0000 0000 0000" />
+                        </div>
+                        <div>
+                          <Label hint="Optional">Sort code / routing</Label>
+                          <input className={`${inputCls} font-mono`} value={f.sortCode} onChange={e => set('sortCode', e.target.value)} placeholder="00-00-00" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {method === 'bitcoin' && (
+                    <div>
+                      <Label>Bitcoin wallet address</Label>
+                      <input className={`${inputCls} font-mono text-sm`} value={f.btcAddress} onChange={e => set('btcAddress', e.target.value)} placeholder="bc1q…" />
+                      <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Double-check the address — Bitcoin transfers can&apos;t be reversed.</p>
+                    </div>
+                  )}
+                  {method === 'paypal' && (
+                    <div>
+                      <Label>PayPal email</Label>
+                      <input type="email" className={inputCls} value={f.paypalEmail} onChange={e => set('paypalEmail', e.target.value)} placeholder="you@example.com" />
+                    </div>
+                  )}
+                </Card>
               </div>
 
-              {/* Fee calculation */}
-              {amountNum > 0 && (
-                <div className="mt-3 space-y-1 text-xs text-slate-500 dark:text-slate-400">
-                  <div className="flex justify-between">
-                    <span>Withdrawal amount</span>
-                    <span className="font-semibold text-dark-base dark:text-white">${amountNum.toFixed(2)}</span>
+              {/* Summary */}
+              <div className="xl:sticky xl:top-24 space-y-4">
+                <Card className="p-6">
+                  <h2 className="text-[17px] font-semibold text-dark-base dark:text-white">Summary</h2>
+                  <div className="mt-4">
+                    <SummaryRow label="Withdrawal" value={<CountUp prefix="$" value={amt} decimals={2} duration={0.4} />} />
+                    <SummaryRow label={`Fee (${sel.fee.replace(' fee', '')})`} value={fee ? `−${fmt(fee)}` : 'Free'} />
+                    <SummaryRow label="Method" value={sel.label} />
+                    <SummaryRow label="Arrives" value={sel.eta} />
+                    <div className="my-2 h-px bg-black/[0.06] dark:bg-white/[0.07]" />
+                    <SummaryRow label="You'll receive" value={<CountUp prefix="$" value={receive} decimals={2} duration={0.5} />} strong />
                   </div>
-                  <div className="flex justify-between">
-                    <span>Platform fee ({selectedMethod.fee})</span>
-                    <span className="font-semibold text-dark-base dark:text-white">-${fee.toFixed(2)}</span>
+                  <div className="mt-6">
+                    <PrimaryButton disabled={!canContinue}>Continue to verification</PrimaryButton>
                   </div>
-                  <div className="h-px bg-light-border dark:bg-dark-border my-1" />
-                  <div className="flex justify-between font-semibold">
-                    <span className="text-dark-base dark:text-white">You receive</span>
-                    <span className="text-emerald-600 dark:text-emerald-400">${youReceive.toFixed(2)}</span>
-                  </div>
+                  {!canContinue && amt > 0 && !amountError && !recipientOk && (
+                    <p className="mt-3 text-center text-xs text-slate-400">Add recipient details to continue.</p>
+                  )}
+                </Card>
+                <div className="flex items-start gap-2.5 px-2 text-xs text-slate-500 dark:text-slate-400">
+                  <Lock size={14} className="mt-0.5 flex-shrink-0 text-brand-primary" />
+                  <span>Every withdrawal is protected by a one-time authorisation code issued by our support team.</span>
                 </div>
-              )}
-            </div>
-
-            {/* Method selection */}
-            <div className="bg-light-base dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl p-6">
-              <p className="block text-xs font-semibold text-dark-base dark:text-white uppercase tracking-wider mb-4">
-                Withdrawal Method
-              </p>
-              <div className="space-y-3">
-                {methods.map(m => (
-                  <label
-                    key={m.id}
-                    className={`flex items-center gap-4 p-4 border cursor-pointer transition-colors ${
-                      method === m.id
-                        ? 'border-brand-primary bg-brand-primary/5'
-                        : 'border-light-border dark:border-dark-border hover:border-slate-300 dark:hover:border-slate-600'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="method"
-                      value={m.id}
-                      checked={method === m.id}
-                      onChange={() => setMethod(m.id)}
-                      className="sr-only"
-                    />
-                    <div className={`w-10 h-10 flex items-center justify-center flex-shrink-0 ${
-                      method === m.id ? 'bg-brand-primary/15' : 'bg-light-surface dark:bg-dark-surface'
-                    }`}>
-                      <m.icon size={18} className={method === m.id ? 'text-brand-primary' : 'text-slate-500 dark:text-slate-400'} />
-                    </div>
-                    <div className="flex-1">
-                      <p className={`text-sm font-semibold ${method === m.id ? 'text-brand-primary' : 'text-dark-base dark:text-white'}`}>
-                        {m.label}
-                      </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{m.fee}</p>
-                    </div>
-                    <div className={`w-4 h-4 border-2 flex items-center justify-center flex-shrink-0 ${
-                      method === m.id ? 'border-brand-primary' : 'border-light-border dark:border-dark-border'
-                    }`}>
-                      {method === m.id && <div className="w-2 h-2 bg-brand-primary" />}
-                    </div>
-                  </label>
-                ))}
+                <div className="flex items-start gap-2.5 px-2 text-xs text-slate-500 dark:text-slate-400">
+                  <ShieldCheck size={14} className="mt-0.5 flex-shrink-0 text-brand-primary" />
+                  <span>Payouts go only to accounts in your name.</span>
+                </div>
               </div>
-            </div>
-
-            {/* Conditional recipient fields */}
-            <div className="bg-light-base dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl p-6 space-y-5">
-              <p className="block text-xs font-semibold text-dark-base dark:text-white uppercase tracking-wider">
-                Recipient Details
-              </p>
-
-              {method === 'bank' && (
-                <>
-                  <div>
-                    <label className="block text-xs font-semibold text-dark-base dark:text-white uppercase tracking-wider mb-2">Account Name</label>
-                    <input type="text" value={fields.accountName} onChange={e => updateField('accountName', e.target.value)} placeholder="John Doe"
-                      className="w-full px-4 py-3 border border-light-border dark:border-dark-border bg-light-base dark:bg-dark-card text-dark-base dark:text-white placeholder:text-slate-400 text-sm focus:outline-none focus:border-brand-primary transition-colors" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-dark-base dark:text-white uppercase tracking-wider mb-2">Account Number</label>
-                      <input type="text" value={fields.accountNumber} onChange={e => updateField('accountNumber', e.target.value)} placeholder="0000 0000 0000"
-                        className="w-full px-4 py-3 border border-light-border dark:border-dark-border bg-light-base dark:bg-dark-card text-dark-base dark:text-white placeholder:text-slate-400 text-sm focus:outline-none focus:border-brand-primary transition-colors" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-dark-base dark:text-white uppercase tracking-wider mb-2">Sort Code</label>
-                      <input type="text" value={fields.sortCode} onChange={e => updateField('sortCode', e.target.value)} placeholder="00-00-00"
-                        className="w-full px-4 py-3 border border-light-border dark:border-dark-border bg-light-base dark:bg-dark-card text-dark-base dark:text-white placeholder:text-slate-400 text-sm focus:outline-none focus:border-brand-primary transition-colors" />
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {method === 'bitcoin' && (
-                <div>
-                  <label className="block text-xs font-semibold text-dark-base dark:text-white uppercase tracking-wider mb-2">Bitcoin Address</label>
-                  <input type="text" value={fields.btcAddress} onChange={e => updateField('btcAddress', e.target.value)} placeholder="bc1q..."
-                    className="w-full px-4 py-3 border border-light-border dark:border-dark-border bg-light-base dark:bg-dark-card text-dark-base dark:text-white placeholder:text-slate-400 text-sm focus:outline-none focus:border-brand-primary transition-colors font-mono" />
-                  <p className="text-xs text-slate-400 mt-1.5">Double-check the address — BTC transactions are irreversible.</p>
-                </div>
-              )}
-
-              {method === 'paypal' && (
-                <div>
-                  <label className="block text-xs font-semibold text-dark-base dark:text-white uppercase tracking-wider mb-2">PayPal Email</label>
-                  <input type="email" value={fields.paypalEmail} onChange={e => updateField('paypalEmail', e.target.value)} placeholder="you@example.com"
-                    className="w-full px-4 py-3 border border-light-border dark:border-dark-border bg-light-base dark:bg-dark-card text-dark-base dark:text-white placeholder:text-slate-400 text-sm focus:outline-none focus:border-brand-primary transition-colors" />
-                </div>
-              )}
-            </div>
-
-            <button
-              type="submit"
-              disabled={!amount || amountNum < 10 || amountNum > balance}
-              className="w-full bg-brand-primary hover:bg-brand-dim disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-3.5 text-sm transition-colors"
-            >
-              Continue to PIN
-            </button>
-          </form>
+            </form>
+          </Reveal>
         )}
       </div>
     </div>
