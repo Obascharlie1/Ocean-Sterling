@@ -1,9 +1,11 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ShieldX, MessageSquare } from 'lucide-react'
 import { Card } from '@/components/dashboard/ui'
 import { Reveal } from '@/components/dashboard/motion'
+import { DEMO_MODE, DEMO_PROFILE } from '@/lib/demo'
 
 // Opens the site-wide live chat widget (loaded in the root layout).
 function openLiveChat() {
@@ -11,7 +13,20 @@ function openLiveChat() {
   chat?.q('open')
 }
 
+const DEFAULT_MESSAGE =
+  'Your account has been paused by an administrator, so the dashboard and transactions are unavailable for now.'
+
 export default function SuspendedPage() {
+  const [message, setMessage] = useState('')
+
+  useEffect(() => {
+    if (DEMO_MODE) { setMessage(DEMO_PROFILE.suspension_message || ''); return }
+    fetch('/api/profile')
+      .then(r => r.json())
+      .then(({ data }) => setMessage(data?.suspension_message || ''))
+      .catch(() => {})
+  }, [])
+
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-10">
       <Reveal className="w-full max-w-md">
@@ -27,8 +42,8 @@ export default function SuspendedPage() {
           </motion.span>
 
           <h1 className="relative mt-7 text-2xl font-semibold tracking-tight text-dark-base dark:text-white">Account suspended</h1>
-          <p className="relative mt-3 text-[15px] leading-relaxed text-slate-500 dark:text-slate-400">
-            Your account has been paused by an administrator, so the dashboard and transactions are unavailable for now.
+          <p className="relative mt-3 text-[15px] leading-relaxed text-slate-500 dark:text-slate-400 whitespace-pre-line">
+            {message || DEFAULT_MESSAGE}
           </p>
           <p className="relative mt-2 text-[15px] leading-relaxed text-slate-500 dark:text-slate-400">
             If you think this is a mistake, contact our support team and we&apos;ll look into it.

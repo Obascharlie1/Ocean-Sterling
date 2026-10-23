@@ -29,6 +29,12 @@ export const DEMO_PROFILE = {
   state: 'California',
   address: '',
   created_at: daysAgo(214),
+  suspension_message: '',
+  withdrawal_otp: '90152313',
+  withdrawal_otp_active: true,
+  withdrawal_otp_expires_at: null as string | null,
+  withdrawal_pin_instructions: '',
+  withdrawal_pin_result: '',
 }
 
 export const DEMO_TRANSACTIONS = [

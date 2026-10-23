@@ -11,6 +11,7 @@ import {
   ShieldCheck, ShieldAlert, ShieldOff,
   FileText, Loader2, Bell, Send, ZoomIn,
   RotateCcw, ChevronLeft, ChevronRight, ShieldCheck as ShieldCheckIcon,
+  KeyRound, Power, Ban, RefreshCw,
 } from 'lucide-react'
 
 import { computeBalance, totalDeposits, totalWithdrawals } from '@/lib/balance'
@@ -31,6 +32,12 @@ interface Profile {
   kyc_submitted_at: string | null
   is_suspended:    boolean
   created_at:      string
+  suspension_message:          string | null
+  withdrawal_otp:              string | null
+  withdrawal_otp_active:       boolean
+  withdrawal_otp_expires_at:   string | null
+  withdrawal_pin_instructions: string | null
+  withdrawal_pin_result:       string | null
 }
 
 interface Tx {
@@ -108,6 +115,13 @@ export default function AdminUserDetailPage() {
   const [notifLoading, setNotifLoading] = useState(false)
   const [notifSent,    setNotifSent]    = useState(false)
 
+  /* withdrawal & security state */
+  const [pinInstr,    setPinInstr]    = useState('')
+  const [pinResult,   setPinResult]   = useState('')
+  const [suspMsg,     setSuspMsg]     = useState('')
+  const [otpDuration, setOtpDuration] = useState('1h')
+  const [secBusy,     setSecBusy]     = useState('')
+
   /* ── load data ────────────────────────────────────────────────────────── */
 
   const load = useCallback(async () => {
@@ -157,8 +171,39 @@ export default function AdminUserDetailPage() {
   async function handleSuspend() {
     if (!profile) return
     setSuspending(true)
-    await patchProfile({ is_suspended: !profile.is_suspended })
+    await patchProfile({ is_suspended: !profile.is_suspended, suspension_message: suspMsg })
     setSuspending(false)
+  }
+
+  // Keep the editable security fields in sync with the loaded profile.
+  useEffect(() => {
+    if (!profile) return
+    setPinInstr(profile.withdrawal_pin_instructions ?? '')
+    setPinResult(profile.withdrawal_pin_result ?? '')
+    setSuspMsg(profile.suspension_message ?? '')
+  }, [profile])
+
+  async function saveFields(updates: Record<string, unknown>, tag: string) {
+    setSecBusy(tag)
+    setProfile(p => (p ? { ...p, ...updates } : p)) // optimistic
+    await patchProfile(updates)
+    setSecBusy('')
+  }
+
+  const OTP_DURATIONS: { id: string; label: string; ms: number }[] = [
+    { id: '15m', label: '15 minutes', ms: 15 * 60_000 },
+    { id: '1h',  label: '1 hour',     ms: 60 * 60_000 },
+    { id: '6h',  label: '6 hours',    ms: 6 * 60 * 60_000 },
+    { id: '24h', label: '24 hours',   ms: 24 * 60 * 60_000 },
+    { id: '7d',  label: '7 days',     ms: 7 * 24 * 60 * 60_000 },
+    { id: 'none', label: 'No expiry', ms: 0 },
+  ]
+
+  function generateOtp() {
+    const code = String(Math.floor(10_000_000 + Math.random() * 90_000_000))
+    const ms = OTP_DURATIONS.find(d => d.id === otpDuration)?.ms ?? 0
+    const expires = ms ? new Date(Date.now() + ms).toISOString() : null
+    saveFields({ withdrawal_otp: code, withdrawal_otp_active: true, withdrawal_otp_expires_at: expires }, 'otp')
   }
 
   async function handleDelete() {
@@ -822,6 +867,108 @@ export default function AdminUserDetailPage() {
           </>
         )}
       </section>
+
+      {/* ── Section 5: Withdrawals & Security ───────────────────────────── */}
+      {(() => {
+        const otpExpired = !!profile.withdrawal_otp_expires_at && new Date(profile.withdrawal_otp_expires_at) < new Date()
+        const otpLive = !!profile.withdrawal_otp && profile.withdrawal_otp_active && !otpExpired
+        const otpState = !profile.withdrawal_otp ? 'None' : !profile.withdrawal_otp_active ? 'Inactive' : otpExpired ? 'Expired' : 'Active'
+        const stateCls = otpState === 'Active' ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+          : otpState === 'Expired' ? 'bg-red-500/10 text-red-600 dark:text-red-400'
+          : 'bg-slate-500/10 text-slate-500 dark:text-slate-400'
+        return (
+          <section className="bg-light-base dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl">
+            <div className="px-5 py-4 border-b border-light-border dark:border-dark-border flex items-center gap-2">
+              <KeyRound size={15} className="text-brand-primary" />
+              <h2 className="text-sm font-bold text-dark-base dark:text-white">Withdrawals &amp; Security</h2>
+            </div>
+
+            <div className="p-5 space-y-6">
+              {/* OTP management */}
+              <div className="rounded-lg border border-light-border dark:border-dark-border overflow-hidden">
+                <div className="flex items-center gap-3 px-4 py-3 bg-light-surface dark:bg-dark-surface">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Withdrawal OTP</p>
+                    <p className="text-2xl font-bold font-mono tracking-widest text-dark-base dark:text-white mt-0.5">
+                      {profile.withdrawal_otp ?? '— — — —'}
+                    </p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      {otpState === 'Active' && profile.withdrawal_otp_expires_at && `Expires ${new Date(profile.withdrawal_otp_expires_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`}
+                      {otpState === 'Active' && !profile.withdrawal_otp_expires_at && 'Never expires'}
+                      {otpState === 'Expired' && 'This code has expired — generate a new one.'}
+                      {otpState === 'Inactive' && 'Deactivated — generate a new code to re-enable.'}
+                      {otpState === 'None' && 'No code yet. Generate one to let this user withdraw.'}
+                    </p>
+                  </div>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 uppercase tracking-wider ${stateCls}`}>{otpState}</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 px-4 py-3">
+                  <select value={otpDuration} onChange={e => setOtpDuration(e.target.value)}
+                    className="px-3 py-2 text-xs border border-light-border dark:border-dark-border bg-light-base dark:bg-dark-card text-dark-base dark:text-white rounded-lg focus:outline-none focus:border-brand-primary">
+                    {OTP_DURATIONS.map(d => <option key={d.id} value={d.id}>Valid for {d.label}</option>)}
+                  </select>
+                  <button onClick={generateOtp} disabled={secBusy === 'otp'}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold bg-brand-primary hover:bg-brand-dim disabled:opacity-60 text-white rounded-lg transition-colors">
+                    {secBusy === 'otp' ? <Loader2 size={13} className="animate-spin" /> : profile.withdrawal_otp ? <><RefreshCw size={13} /> Regenerate</> : <><KeyRound size={13} /> Generate code</>}
+                  </button>
+                  {otpLive && (
+                    <button onClick={() => saveFields({ withdrawal_otp_active: false }, 'deact')} disabled={secBusy === 'deact'}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border border-light-border dark:border-dark-border text-slate-600 dark:text-slate-300 hover:border-red-400 hover:text-red-500 rounded-lg transition-colors">
+                      {secBusy === 'deact' ? <Loader2 size={13} className="animate-spin" /> : <><Ban size={13} /> Deactivate</>}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Per-user PIN messages */}
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">PIN screen message</label>
+                  <textarea value={pinInstr} onChange={e => setPinInstr(e.target.value)} rows={3} placeholder="Instructions shown to this user on the withdrawal PIN screen…"
+                    className="w-full px-3 py-2.5 text-sm border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface text-dark-base dark:text-white placeholder:text-slate-400 rounded-lg focus:outline-none focus:border-brand-primary resize-y leading-relaxed" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Message after entering the code</label>
+                  <textarea value={pinResult} onChange={e => setPinResult(e.target.value)} rows={3} placeholder="Shown after this user submits a withdrawal…"
+                    className="w-full px-3 py-2.5 text-sm border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface text-dark-base dark:text-white placeholder:text-slate-400 rounded-lg focus:outline-none focus:border-brand-primary resize-y leading-relaxed" />
+                </div>
+                <button onClick={() => saveFields({ withdrawal_pin_instructions: pinInstr, withdrawal_pin_result: pinResult }, 'msg')} disabled={secBusy === 'msg'}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold bg-brand-primary hover:bg-brand-dim disabled:opacity-60 text-white rounded-lg transition-colors">
+                  {secBusy === 'msg' ? <Loader2 size={13} className="animate-spin" /> : <><Check size={13} /> Save messages</>}
+                </button>
+              </div>
+
+              {/* Suspension */}
+              <div className="pt-5 border-t border-light-border dark:border-dark-border">
+                <div className="flex items-center gap-2 mb-2">
+                  <Power size={14} className={profile.is_suspended ? 'text-red-500' : 'text-slate-400'} />
+                  <p className="text-sm font-semibold text-dark-base dark:text-white">Account status</p>
+                  <span className={`ml-auto text-[10px] font-bold px-2 py-0.5 uppercase tracking-wider ${profile.is_suspended ? 'bg-red-500/10 text-red-600 dark:text-red-400' : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'}`}>
+                    {profile.is_suspended ? 'Suspended' : 'Active'}
+                  </span>
+                </div>
+                <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Suspension message</label>
+                <textarea value={suspMsg} onChange={e => setSuspMsg(e.target.value)} rows={3} placeholder="Shown to the user on the suspended screen…"
+                  className="w-full px-3 py-2.5 text-sm border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface text-dark-base dark:text-white placeholder:text-slate-400 rounded-lg focus:outline-none focus:border-brand-primary resize-y leading-relaxed" />
+                <div className="flex flex-wrap gap-2 mt-3">
+                  <button onClick={() => saveFields({ suspension_message: suspMsg }, 'susp')} disabled={secBusy === 'susp'}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold bg-brand-primary hover:bg-brand-dim disabled:opacity-60 text-white rounded-lg transition-colors">
+                    {secBusy === 'susp' ? <Loader2 size={13} className="animate-spin" /> : <><Check size={13} /> Save message</>}
+                  </button>
+                  <button onClick={handleSuspend} disabled={suspending}
+                    className={`inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg border transition-colors disabled:opacity-50 ${
+                      profile.is_suspended
+                        ? 'border-emerald-300 dark:border-emerald-700/50 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'
+                        : 'border-red-300 dark:border-red-800/60 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'
+                    }`}>
+                    {suspending ? <Loader2 size={13} className="animate-spin" /> : profile.is_suspended ? <><UserCheck size={13} /> Reactivate account</> : <><UserX size={13} /> Suspend with this message</>}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+        )
+      })()}
 
       {/* ── Section 6: Send Notification ───────────────────────────────── */}
       <section className="bg-light-base dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl">

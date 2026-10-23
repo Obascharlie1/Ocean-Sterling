@@ -41,7 +41,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
   // Only allow specific fields to be updated
   // Balance is derived from transactions + profit, so it is never set directly.
-  const allowed = ['profit', 'plan', 'kyc_status', 'is_suspended', 'full_name', 'country']
+  const allowed = ['profit', 'plan', 'kyc_status', 'is_suspended', 'full_name', 'country',
+    'suspension_message', 'withdrawal_otp', 'withdrawal_otp_active', 'withdrawal_otp_expires_at',
+    'withdrawal_pin_instructions', 'withdrawal_pin_result']
   const updates: Record<string, unknown> = {}
   for (const key of allowed) {
     if (key in body) updates[key] = body[key]

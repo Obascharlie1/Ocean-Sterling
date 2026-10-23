@@ -34,8 +34,7 @@ export default function WithdrawPinPage() {
   const [errorMsg, setErrorMsg] = useState('')
   const [pending,  setPending]  = useState<PendingWithdrawal | null>(null)
 
-  // Admin-customizable copy + the support-issued OTP, from payment config.
-  const [otp,          setOtp]          = useState('')
+  // Admin-customizable, per-user copy from the withdrawal config.
   const [instructions, setInstructions] = useState(DEFAULT_INSTRUCTIONS)
   const [resultMsg,    setResultMsg]    = useState(DEFAULT_RESULT)
 
@@ -44,12 +43,11 @@ export default function WithdrawPinPage() {
     if (raw) {
       try { setPending(JSON.parse(raw)) } catch {}
     }
-    fetch('/api/payment-config')
+    fetch('/api/withdrawal-config')
       .then(r => r.json())
       .then(d => {
-        if (typeof d.withdrawal_otp === 'string') setOtp(d.withdrawal_otp.trim())
-        if (d.withdrawal_pin_instructions) setInstructions(d.withdrawal_pin_instructions)
-        if (d.withdrawal_pin_result) setResultMsg(d.withdrawal_pin_result)
+        if (d.instructions) setInstructions(d.instructions)
+        if (d.result) setResultMsg(d.result)
       })
       .catch(() => {})
   }, [])
@@ -80,17 +78,27 @@ export default function WithdrawPinPage() {
     setPhase('success')
   }, [pending])
 
-  const verify = useCallback((code: string) => {
-    setTimeout(() => {
-      if (!otp || code === otp) {
-        submitWithdrawal()
-      } else {
-        setErrorMsg('That code isn’t valid. Contact support to receive your withdrawal code.')
-        setShake(true)
-        setTimeout(() => { setShake(false); setPin('') }, 550)
-      }
-    }, 180)
-  }, [otp, submitWithdrawal])
+  const verify = useCallback(async (code: string) => {
+    setPhase('submitting')
+    let valid = false
+    try {
+      const res = await fetch('/api/withdrawal-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      })
+      valid = res.ok && (await res.json()).valid
+    } catch { valid = false }
+
+    if (valid) {
+      submitWithdrawal()
+    } else {
+      setPhase('enter')
+      setErrorMsg('That code isn’t valid or has expired. Contact support to receive your withdrawal code.')
+      setShake(true)
+      setTimeout(() => { setShake(false); setPin('') }, 550)
+    }
+  }, [submitWithdrawal])
 
   const press = useCallback((d: string) => {
     if (phase !== 'enter' || pin.length >= PIN_LENGTH) return
