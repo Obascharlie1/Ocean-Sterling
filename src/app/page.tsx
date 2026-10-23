@@ -8,6 +8,7 @@ import { HowItWorks } from "@/components/sections/HowItWorks";
 import { InvestmentPlans } from "@/components/sections/InvestmentPlans";
 import { Testimonials } from "@/components/sections/Testimonials";
 import { Security } from "@/components/sections/Security";
+import { Certifications } from "@/components/sections/Certifications";
 import { BTCSection } from "@/components/sections/BTCSection";
 import { FeatureImages } from "@/components/sections/FeatureImages";
 import { MarketAnalysis } from "@/components/sections/MarketAnalysis";
@@ -33,6 +34,7 @@ export default function Home() {
         <PeopleSlideshow />
         <Testimonials />
         <Security />
+        <Certifications />
         <UpToTheMinute />
         <FinalCTA />
       </main>
