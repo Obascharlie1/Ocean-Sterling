@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import {
@@ -9,10 +10,11 @@ import {
   CheckCircle, XCircle, Plus,
   ShieldCheck, ShieldAlert, ShieldOff,
   FileText, Loader2, Bell, Send, ZoomIn,
-  RotateCcw,
+  RotateCcw, ChevronLeft, ChevronRight, ShieldCheck as ShieldCheckIcon,
 } from 'lucide-react'
 
 import { computeBalance, totalDeposits, totalWithdrawals } from '@/lib/balance'
+import { EASE } from '@/components/dashboard/motion'
 
 /* ─── types ─────────────────────────────────────────────────────────────── */
 
@@ -95,7 +97,7 @@ export default function AdminUserDetailPage() {
   /* kyc docs state */
   const [kycDocs,       setKycDocs]       = useState<{ front?: string; back?: string } | null>(null)
   const [kycDocsLoading, setKycDocsLoading] = useState(false)
-  const [lightboxImg,   setLightboxImg]   = useState<string | null>(null)
+  const [lightbox,      setLightbox]      = useState<'front' | 'back' | null>(null)
 
   /* messaging state */
 
@@ -359,7 +361,7 @@ export default function AdminUserDetailPage() {
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Submitted Documents</p>
                 <div className="flex gap-3 flex-wrap">
                   {kycDocs.front && (
-                    <div className="relative group cursor-pointer" onClick={() => setLightboxImg(kycDocs.front!)}>
+                    <div className="relative group cursor-pointer" onClick={() => setLightbox('front')}>
                       <img src={kycDocs.front} alt="Front" className="w-40 h-28 object-cover border border-light-border dark:border-dark-border rounded-lg" />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
                         <ZoomIn size={20} className="text-white" />
@@ -368,7 +370,7 @@ export default function AdminUserDetailPage() {
                     </div>
                   )}
                   {kycDocs.back && (
-                    <div className="relative group cursor-pointer" onClick={() => setLightboxImg(kycDocs.back!)}>
+                    <div className="relative group cursor-pointer" onClick={() => setLightbox('back')}>
                       <img src={kycDocs.back} alt="Back" className="w-40 h-28 object-cover border border-light-border dark:border-dark-border rounded-lg" />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
                         <ZoomIn size={20} className="text-white" />
@@ -902,22 +904,20 @@ export default function AdminUserDetailPage() {
       </section>
 
       {/* Document lightbox */}
-      {lightboxImg && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
-          onClick={() => setLightboxImg(null)}
-        >
-          <div className="relative max-w-3xl w-full" onClick={e => e.stopPropagation()}>
-            <img src={lightboxImg} alt="KYC Document" className="w-full rounded-xl max-h-[80vh] object-contain" />
-            <button
-              onClick={() => setLightboxImg(null)}
-              className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/60 hover:bg-black flex items-center justify-center text-white transition-colors"
-            >
-              <X size={16} />
-            </button>
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {lightbox && kycDocs && (
+          <KycLightbox
+            docs={kycDocs}
+            side={lightbox}
+            docType={profile.kyc_doc_type}
+            userName={profile.full_name || profile.email}
+            verified={profile.kyc_status === 'Verified'}
+            onSide={setLightbox}
+            onClose={() => setLightbox(null)}
+            onVerify={async () => { await patchProfile({ kyc_status: 'Verified' }); setLightbox(null) }}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Delete confirmation modal */}
       {confirmDel && (
@@ -949,5 +949,125 @@ export default function AdminUserDetailPage() {
         </div>
       )}
     </div>
+  )
+}
+
+/* ─── premium KYC document viewer ─────────────────────────────────────────── */
+
+function KycLightbox({ docs, side, docType, userName, verified, onSide, onClose, onVerify }: {
+  docs: { front?: string; back?: string }
+  side: 'front' | 'back'
+  docType: string | null
+  userName: string
+  verified: boolean
+  onSide: (s: 'front' | 'back') => void
+  onClose: () => void
+  onVerify: () => void
+}) {
+  const sides = (['front', 'back'] as const).filter(s => docs[s])
+  const idx = sides.indexOf(side)
+  const url = docs[side]
+
+  // Keyboard: Esc to close, arrows to switch sides.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose()
+      if (sides.length > 1 && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
+        const next = e.key === 'ArrowRight' ? (idx + 1) % sides.length : (idx - 1 + sides.length) % sides.length
+        onSide(sides[next])
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [idx, sides, onClose, onSide])
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+    >
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
+
+      <motion.div
+        role="dialog" aria-modal="true" aria-label="KYC document"
+        initial={{ opacity: 0, y: 18, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 12, scale: 0.98 }}
+        transition={{ duration: 0.3, ease: EASE }}
+        className="relative w-full max-w-2xl rounded-[24px] bg-[#0B0F0D] text-white ring-1 ring-white/10 overflow-hidden shadow-[0_40px_80px_-30px_rgba(0,0,0,0.8)]"
+      >
+        {/* Header */}
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-white/10">
+          <span className="w-9 h-9 rounded-xl bg-white/[0.06] ring-1 ring-white/10 grid place-items-center flex-shrink-0">
+            <FileText size={16} className="text-brand-secondary" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold truncate">{docType || 'Identity document'}</p>
+            <p className="text-xs text-white/50 truncate">{userName}</p>
+          </div>
+          <span className={`ml-auto inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${verified ? 'bg-brand-primary/15 text-brand-secondary' : 'bg-amber-400/15 text-amber-300'}`}>
+            {verified ? <><ShieldCheckIcon size={12} /> Verified</> : 'Pending review'}
+          </span>
+          <button onClick={onClose} aria-label="Close" className="w-9 h-9 rounded-full grid place-items-center text-white/60 hover:text-white hover:bg-white/10 transition">
+            <X size={17} />
+          </button>
+        </div>
+
+        {/* Tabs */}
+        {sides.length > 1 && (
+          <div className="flex gap-1 px-5 pt-4">
+            {sides.map(s => (
+              <button
+                key={s}
+                onClick={() => onSide(s)}
+                className={`relative px-4 h-8 text-xs font-semibold rounded-full capitalize transition-colors ${side === s ? 'text-dark-base' : 'text-white/60 hover:text-white'}`}
+              >
+                {side === s && <motion.span layoutId="kyc-tab" className="absolute inset-0 rounded-full bg-white" transition={{ type: 'spring', stiffness: 500, damping: 38 }} />}
+                <span className="relative">{s}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Image stage */}
+        <div className="relative m-5 rounded-2xl bg-black/40 ring-1 ring-white/[0.06] overflow-hidden grid place-items-center min-h-[280px]">
+          <AnimatePresence mode="wait">
+            {url
+              ? (
+                <motion.img
+                  key={side}
+                  src={url}
+                  alt={`${docType ?? 'Document'} — ${side}`}
+                  initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="max-h-[62vh] w-auto object-contain"
+                />
+              )
+              : <p key="none" className="py-16 text-sm text-white/50">This side was not provided.</p>}
+          </AnimatePresence>
+
+          {sides.length > 1 && (
+            <>
+              <button onClick={() => onSide(sides[(idx - 1 + sides.length) % sides.length])} aria-label="Previous" className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 hover:bg-black/70 grid place-items-center text-white transition">
+                <ChevronLeft size={18} />
+              </button>
+              <button onClick={() => onSide(sides[(idx + 1) % sides.length])} aria-label="Next" className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 hover:bg-black/70 grid place-items-center text-white transition">
+                <ChevronRight size={18} />
+              </button>
+            </>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center gap-3 px-5 pb-5">
+          <p className="text-xs text-white/45 flex-1">Check the document is legible, unexpired, and matches the account holder.</p>
+          {!verified && (
+            <button onClick={onVerify} className="inline-flex items-center gap-1.5 h-10 px-4 rounded-full bg-brand-primary text-white text-sm font-semibold hover:bg-brand-dim active:scale-[0.97] transition">
+              <ShieldCheckIcon size={15} /> Mark verified
+            </button>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
   )
 }
