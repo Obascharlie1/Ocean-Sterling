@@ -92,10 +92,12 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
     return pathname === href || pathname.startsWith(href + '/')
   }
 
+  const initials = userName ? userName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : '··'
+
   const NavContent = () => (
     <>
-      {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+      <nav className="flex-1 px-3 pt-2 pb-4 space-y-1 overflow-y-auto">
+        <p className="px-3 pt-3 pb-2 text-[11px] font-medium uppercase tracking-[0.14em] text-slate-400">Menu</p>
         {navItems.map((item) => {
           const active = isActive(item.href, item.exact)
           const isMessages = item.href === '/dashboard/messages'
@@ -104,16 +106,16 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
               key={item.href}
               href={item.href}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-colors duration-150',
+                'group flex items-center gap-3 h-11 px-3 rounded-xl text-sm font-medium transition',
                 active
-                  ? 'bg-brand-primary/10 text-brand-primary border-l-2 border-brand-primary pl-[10px]'
-                  : 'text-slate-500 dark:text-slate-400 hover:bg-light-surface dark:hover:bg-dark-card hover:text-dark-base dark:hover:text-white border-l-2 border-transparent'
+                  ? 'bg-dark-base text-white shadow-sm dark:bg-white dark:text-dark-base'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] hover:text-dark-base dark:hover:text-white'
               )}
             >
-              <item.icon size={17} strokeWidth={active ? 2.5 : 2} />
+              <item.icon size={18} strokeWidth={active ? 2.25 : 1.9} />
               <span className="flex-1">{item.label}</span>
               {isMessages && unreadMsgs > 0 && (
-                <span className="min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-brand-primary text-white text-[10px] font-bold">
+                <span className="min-w-[20px] h-5 px-1.5 grid place-items-center rounded-full bg-brand-primary text-white text-[11px] font-semibold">
                   {unreadMsgs}
                 </span>
               )}
@@ -122,64 +124,58 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
         })}
       </nav>
 
-      {/* User section */}
-      <div className="border-t border-light-border dark:border-dark-border p-4">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-8 h-8 bg-brand-primary flex items-center justify-center flex-shrink-0">
-            <span className="text-white text-xs font-bold">
-              {userName ? userName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : '…'}
-            </span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-dark-base dark:text-white truncate">{userName || 'Loading…'}</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{userEmail}</p>
+      <div className="p-3">
+        <div className="rounded-2xl bg-black/[0.03] dark:bg-white/[0.05] p-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-secondary to-brand-primary grid place-items-center flex-shrink-0">
+              <span className="text-white text-xs font-semibold">{initials}</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-dark-base dark:text-white truncate">{userName || 'Your account'}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{userEmail || '—'}</p>
+            </div>
+            <button
+              onClick={handleSignOut}
+              aria-label="Sign out"
+              className="w-8 h-8 rounded-full grid place-items-center text-slate-500 hover:text-dark-base dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition"
+            >
+              <LogOut size={15} />
+            </button>
           </div>
         </div>
-        <button
-          onClick={handleSignOut}
-          className="flex items-center gap-2 w-full px-3 py-2 text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-dark-base dark:hover:text-white hover:bg-light-surface dark:hover:bg-dark-card transition-colors"
-        >
-          <LogOut size={14} />
-          Sign Out
-        </button>
       </div>
     </>
   )
 
   return (
     <>
-      {/* ── Desktop sidebar (always visible) ── */}
-      <aside className="hidden lg:flex fixed left-0 top-0 h-full w-64 flex-col bg-light-base dark:bg-dark-base border-r border-light-border dark:border-dark-border z-40">
-        {/* Logo */}
-        <div className="flex items-center px-6 py-5 border-b border-light-border dark:border-dark-border">
-          <Wordmark href="/dashboard" className="text-lg" />
+      <aside className="hidden lg:flex fixed left-0 top-0 h-full w-[260px] flex-col bg-white dark:bg-[#0E100F] border-r border-black/[0.06] dark:border-white/[0.06] z-40">
+        <div className="flex items-center h-16 px-6">
+          <Wordmark href="/dashboard" className="text-[17px]" />
         </div>
         <NavContent />
       </aside>
 
-      {/* ── Mobile slide-out drawer ── */}
-      {/* Backdrop */}
       <div
         className={cn(
-          'lg:hidden fixed inset-0 z-50 bg-black/60 transition-opacity duration-300',
+          'lg:hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm transition-opacity duration-300',
           mobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         )}
         onClick={onClose}
       />
 
-      {/* Drawer panel */}
       <aside
         className={cn(
-          'lg:hidden fixed left-0 top-0 h-full w-72 flex flex-col bg-light-base dark:bg-dark-base border-r border-light-border dark:border-dark-border z-50 transition-transform duration-300 ease-in-out',
+          'lg:hidden fixed left-0 top-0 h-full w-[280px] flex flex-col bg-white dark:bg-[#0E100F] z-50 transition-transform duration-300 ease-out shadow-2xl',
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        {/* Logo + close */}
-        <div className="flex items-center justify-between px-5 py-5 border-b border-light-border dark:border-dark-border">
+        <div className="flex items-center justify-between h-16 px-5">
           <Wordmark href="/dashboard" className="text-base" />
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-dark-base dark:hover:text-white transition-colors"
+            aria-label="Close menu"
+            className="w-9 h-9 rounded-full grid place-items-center text-slate-500 hover:bg-black/5 dark:hover:bg-white/10 transition"
           >
             <X size={18} />
           </button>
