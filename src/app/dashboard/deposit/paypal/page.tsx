@@ -8,7 +8,7 @@ import { TopBar } from '@/components/dashboard/TopBar'
 const REFERENCE = 'QV847392'
 
 export default function PaypalDepositPage() {
-  const [paypalEmail, setPaypalEmail] = useState('payments@teslaCapital.io')
+  const [paypalEmail, setPaypalEmail] = useState('payments@oceansterling.io')
   const [emailCopied, setEmailCopied] = useState(false)
   const [refCopied,   setRefCopied]   = useState(false)
   const [amount,      setAmount]      = useState('')

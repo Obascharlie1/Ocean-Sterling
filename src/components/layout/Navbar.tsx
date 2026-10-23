@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { Menu, X } from 'lucide-react'
-import Image from 'next/image'
+import { Wordmark } from '@/components/ui/Wordmark'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { navLinks } from '@/data'
 import { cn } from '@/lib/utils'
@@ -38,14 +38,7 @@ export function Navbar() {
           <div className="flex items-center justify-between">
             {/* Logo */}
             <Link href="/" className="flex items-center">
-              <Image
-                src="/images/logo.png"
-                alt="Tesla Capital"
-                width={356}
-                height={22}
-                className="h-3.5 w-auto sm:h-7"
-                priority
-              />
+              <Wordmark href={null} className="text-[15px] sm:text-xl" />
             </Link>
 
             {/* Desktop nav */}

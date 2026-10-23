@@ -73,7 +73,7 @@ export function MarketAnalysis() {
 
             <p className="text-base text-slate-500 dark:text-slate-400 leading-relaxed mb-8">
               Tap into a desk of pro analysts feeding you live, actionable setups — not noise.
-              Tesla Capital plugs you straight into the same flow, conviction calls, and market
+              Ocean Sterling plugs you straight into the same flow, conviction calls, and market
               reads the sharpest traders use to stay ahead of the tape.
             </p>
 

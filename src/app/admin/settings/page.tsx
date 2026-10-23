@@ -144,7 +144,7 @@ export default function AdminSettingsPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Bank Name"       value={config.bank_name}           onChange={set('bank_name')}           placeholder="Chase Bank" />
-          <Field label="Account Name"    value={config.bank_account_name}   onChange={set('bank_account_name')}   placeholder="Tesla Capital Ltd" />
+          <Field label="Account Name"    value={config.bank_account_name}   onChange={set('bank_account_name')}   placeholder="Ocean Sterling Ltd" />
           <Field label="Account Number"  value={config.bank_account_number} onChange={set('bank_account_number')} placeholder="4521 8847 3920 1547" mono />
           <Field label="Sort Code"       value={config.bank_sort_code}      onChange={set('bank_sort_code')}      placeholder="20-19-15" mono />
           <Field label="SWIFT / BIC"     value={config.bank_swift}          onChange={set('bank_swift')}          placeholder="CHASUS33" mono />

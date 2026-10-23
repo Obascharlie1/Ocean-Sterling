@@ -43,7 +43,7 @@ export default function AdminLoginPage() {
             <Shield size={30} className="text-white" />
           </div>
           <h1 className="text-2xl font-bold text-dark-base dark:text-white tracking-tight">Admin Portal</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Tesla Capital — Restricted Access</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Ocean Sterling — Restricted Access</p>
         </div>
 
         <form
@@ -63,7 +63,7 @@ export default function AdminLoginPage() {
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              placeholder="admin@teslacapital.com"
+              placeholder="admin@oceansterling.com"
               required
               className="w-full px-4 py-3 border border-light-border dark:border-dark-border bg-light-base dark:bg-dark-card text-dark-base dark:text-white placeholder:text-slate-400 text-sm focus:outline-none focus:border-brand-primary transition-colors"
             />

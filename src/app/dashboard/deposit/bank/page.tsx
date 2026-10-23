@@ -11,7 +11,7 @@ interface BankDetails { label: string; value: string }
 
 const DEFAULT_BANK: BankDetails[] = [
   { label: 'Bank Name',       value: 'Chase Bank' },
-  { label: 'Account Name',   value: 'Tesla Capital Ltd' },
+  { label: 'Account Name',   value: 'Ocean Sterling Ltd' },
   { label: 'Account Number', value: '4521 8847 3920 1547' },
   { label: 'Sort Code',      value: '20-19-15' },
   { label: 'SWIFT / BIC',    value: 'CHASUS33' },

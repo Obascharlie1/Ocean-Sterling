@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
+import { Wordmark } from '@/components/ui/Wordmark'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -44,13 +44,7 @@ export default function LoginPage() {
   return (
     <div className="w-full max-w-sm">
       <div className="lg:hidden flex items-center mb-8">
-        <Image
-          src="/images/logo.png"
-          alt="Tesla Capital"
-          width={324}
-          height={20}
-          className="h-3.5 w-auto dark:brightness-0 dark:invert"
-        />
+        <Wordmark className="text-lg" />
       </div>
 
       <div className="mb-8">

@@ -69,7 +69,7 @@ export function UpToTheMinute() {
 
               <Image
                 src="/images/phones-mockup.png"
-                alt="Tesla Capital mobile trading app"
+                alt="Ocean Sterling mobile trading app"
                 width={420}
                 height={520}
                 className="w-full h-auto drop-shadow-2xl animate-float"

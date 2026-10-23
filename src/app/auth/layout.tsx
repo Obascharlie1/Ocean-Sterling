@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import Image from 'next/image'
+import { Wordmark } from '@/components/ui/Wordmark'
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -23,13 +23,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="relative z-10 flex flex-col h-full px-12 py-10">
           {/* Logo */}
           <Link href="/" className="flex items-center mb-auto">
-            <Image
-              src="/images/logo.png"
-              alt="Tesla Capital"
-              width={356}
-              height={22}
-              className="h-4 w-auto brightness-0 invert"
-            />
+            <Wordmark href={null} onDark className="text-xl" />
           </Link>
 
           {/* Headline */}
@@ -57,7 +51,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
           {/* Bottom note */}
           <p className="text-xs text-slate-500 mt-12">
-            &copy; {new Date().getFullYear()} Tesla Capital. All rights reserved.
+            &copy; {new Date().getFullYear()} Ocean Sterling. All rights reserved.
           </p>
         </div>
       </div>

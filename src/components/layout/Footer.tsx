@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import Image from 'next/image'
+import { Wordmark } from '@/components/ui/Wordmark'
 
 const footerLinks = {
   Product: ['Features', 'Markets', 'Pricing', 'API', 'Changelog'],
@@ -51,13 +51,7 @@ export function Footer() {
           {/* Brand */}
           <div className="col-span-1 sm:col-span-2 md:col-span-3 lg:col-span-2">
             <Link href="/" className="flex items-center mb-4">
-              <Image
-                src="/images/logo.png"
-                alt="Tesla Capital"
-                width={356}
-                height={22}
-                className="h-7 w-auto"
-              />
+              <Wordmark href={null} className="text-xl" />
             </Link>
             <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed mb-6 max-w-xs">
               Hedge-fund firepower for every trader. AI signals, sub-50ms execution, and the edge to move first.
@@ -97,10 +91,10 @@ export function Footer() {
         {/* Bottom bar */}
         <div className="pt-8 border-t border-light-border dark:border-dark-border flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            © 2026 Tesla Capital Technologies Inc. All rights reserved.
+            © 2026 Ocean Sterling Technologies Inc. All rights reserved.
           </p>
           <p className="text-xs text-slate-500 dark:text-slate-400 text-center sm:text-right max-w-md">
-            Tesla Capital is registered with the SEC and FINRA. Investing involves risk. Past performance does not guarantee future results.
+            Ocean Sterling is registered with the SEC and FINRA. Investing involves risk. Past performance does not guarantee future results.
           </p>
         </div>
       </div>

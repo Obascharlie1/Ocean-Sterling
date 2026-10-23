@@ -195,7 +195,7 @@ export const testimonials = [
     avatar: 'MR',
     image: 'https://i.pravatar.cc/80?img=57',
     color: '#EC4899',
-    quote: 'Institutional-grade execution at a retail price. We run Tesla Capital next to our Bloomberg terminals — the divergence signals are uniquely alpha-generating.',
+    quote: 'Institutional-grade execution at a retail price. We run Ocean Sterling next to our Bloomberg terminals — the divergence signals are uniquely alpha-generating.',
     profit: '+412%',
     period: '18 months',
     rating: 5,

@@ -37,7 +37,7 @@ export default function SuspendedPage() {
         </Link>
 
         <p className="mt-6 text-xs text-slate-400">
-          Ref: account suspended · Tesla Capital
+          Ref: account suspended · Ocean Sterling
         </p>
       </div>
     </div>

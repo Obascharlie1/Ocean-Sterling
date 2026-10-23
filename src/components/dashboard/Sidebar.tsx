@@ -1,6 +1,6 @@
 'use client'
 
-import Image from 'next/image'
+import { Wordmark } from '@/components/ui/Wordmark'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
@@ -152,7 +152,7 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
       <aside className="hidden lg:flex fixed left-0 top-0 h-full w-64 flex-col bg-light-base dark:bg-dark-base border-r border-light-border dark:border-dark-border z-40">
         {/* Logo */}
         <div className="flex items-center px-6 py-5 border-b border-light-border dark:border-dark-border">
-          <Image src="/images/logo.png" alt="Tesla Capital" width={120} height={20} className="h-5 w-auto" />
+          <Wordmark href="/dashboard" className="text-lg" />
         </div>
         <NavContent />
       </aside>
@@ -176,7 +176,7 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
       >
         {/* Logo + close */}
         <div className="flex items-center justify-between px-5 py-5 border-b border-light-border dark:border-dark-border">
-          <Image src="/images/logo.png" alt="Tesla Capital" width={60} height={10} className="h-2.5 w-auto" />
+          <Wordmark href="/dashboard" className="text-base" />
           <button
             onClick={onClose}
             className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-dark-base dark:hover:text-white transition-colors"
