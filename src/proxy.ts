@@ -9,6 +9,7 @@ export async function proxy(request: NextRequest) {
   // ── Admin routes ─────────────────────────────────────────────────────────
   // Protected by a signed cookie set on /api/admin/auth
   if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
+    if (DEMO_MODE) return response
     const adminToken = request.cookies.get('admin_token')?.value
     if (!adminToken || adminToken !== process.env.ADMIN_API_SECRET) {
       return NextResponse.redirect(new URL('/admin/login', request.url))

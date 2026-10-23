@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { DEMO_MODE } from '@/lib/demo'
+import { DEMO_ADMIN_TRANSACTIONS, demoReadOnly } from '@/lib/demoAdmin'
 
 function isAdmin(request: NextRequest) {
   return request.cookies.get('admin_token')?.value === process.env.ADMIN_API_SECRET
 }
 
 export async function GET(request: NextRequest) {
+  if (DEMO_MODE) {
+    const uid = request.nextUrl.searchParams.get('userId')
+    const data = uid ? DEMO_ADMIN_TRANSACTIONS.filter(t => t.user_id === uid) : DEMO_ADMIN_TRANSACTIONS
+    return NextResponse.json({ data })
+  }
   if (!isAdmin(request)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const userId = request.nextUrl.searchParams.get('userId')
   const admin = createAdminClient()
@@ -20,6 +27,7 @@ export async function GET(request: NextRequest) {
 
 // Admin-created deposit — always Completed, credits balance immediately
 export async function POST(request: NextRequest) {
+  if (DEMO_MODE) return demoReadOnly()
   if (!isAdmin(request)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const { userId, amount, method, note } = await request.json()
   const admin = createAdminClient()

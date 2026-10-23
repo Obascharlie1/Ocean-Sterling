@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { DEMO_MODE } from '@/lib/demo'
 
 function isAdmin(request: NextRequest) {
   return request.cookies.get('admin_token')?.value === process.env.ADMIN_API_SECRET
 }
 
 export async function GET(request: NextRequest) {
+  if (DEMO_MODE) return NextResponse.json({ error: 'No receipt in demo mode.' }, { status: 404 })
   if (!isAdmin(request)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const path = request.nextUrl.searchParams.get('path')

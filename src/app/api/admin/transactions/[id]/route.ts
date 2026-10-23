@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createNotification } from '@/lib/supabase/notify'
+import { DEMO_MODE } from '@/lib/demo'
+import { demoReadOnly } from '@/lib/demoAdmin'
 
 function isAdmin(request: NextRequest) {
   return request.cookies.get('admin_token')?.value === process.env.ADMIN_API_SECRET
@@ -9,6 +11,7 @@ function isAdmin(request: NextRequest) {
 type Params = { params: Promise<{ id: string }> }
 
 export async function PATCH(request: NextRequest, { params }: Params) {
+  if (DEMO_MODE) return demoReadOnly()
   if (!isAdmin(request)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const { id } = await params
   const { status } = await request.json()
@@ -78,6 +81,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(request: NextRequest, { params }: Params) {
+  if (DEMO_MODE) return demoReadOnly()
   if (!isAdmin(request)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const { id } = await params
   const admin = createAdminClient()

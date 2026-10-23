@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { DEMO_MODE } from '@/lib/demo'
 
 function isAdmin(request: NextRequest) {
   return request.cookies.get('admin_token')?.value === process.env.ADMIN_API_SECRET
@@ -8,6 +9,7 @@ function isAdmin(request: NextRequest) {
 type Params = { params: Promise<{ id: string }> }
 
 export async function GET(request: NextRequest, { params }: Params) {
+  if (DEMO_MODE) return NextResponse.json({ data: {} })
   if (!isAdmin(request)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { id } = await params

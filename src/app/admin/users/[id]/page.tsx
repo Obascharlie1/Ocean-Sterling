@@ -505,7 +505,7 @@ export default function AdminUserDetailPage() {
               </div>
             ) : (
               <p className="text-3xl font-bold text-dark-base dark:text-white">
-                ${(profile.profit ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                ${(profile.balance ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             )}
           </div>

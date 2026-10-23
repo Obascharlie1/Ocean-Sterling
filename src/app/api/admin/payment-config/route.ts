@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { DEMO_MODE } from '@/lib/demo'
+import { demoReadOnly } from '@/lib/demoAdmin'
 
 function isAdmin(request: NextRequest) {
   const token = request.cookies.get('admin_token')?.value
@@ -7,6 +9,7 @@ function isAdmin(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  if (DEMO_MODE) return demoReadOnly()
   if (!isAdmin(request)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = await request.json()

@@ -1,7 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { DEMO_MODE } from '@/lib/demo'
 
 export async function POST(request: NextRequest) {
   const { email, password } = await request.json()
+
+  // Local demo mode (no admin credentials configured) — any sign-in works.
+  if (DEMO_MODE) {
+    const response = NextResponse.json({ success: true })
+    response.cookies.set('admin_token', 'demo', {
+      httpOnly: true, sameSite: 'lax', maxAge: 60 * 60 * 24, path: '/',
+    })
+    return response
+  }
 
   if (
     email === process.env.ADMIN_EMAIL &&

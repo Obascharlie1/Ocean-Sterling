@@ -23,7 +23,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="relative z-10 flex flex-col h-full px-12 py-10">
           {/* Logo */}
           <Link href="/" className="flex items-center mb-auto">
-            <Wordmark href={null} onDark className="text-xl" />
+            <Wordmark href={null} onDark className="h-9" />
           </Link>
 
           {/* Headline */}

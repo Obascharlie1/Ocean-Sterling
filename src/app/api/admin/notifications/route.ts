@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createNotification } from '@/lib/supabase/notify'
+import { DEMO_MODE } from '@/lib/demo'
+import { demoReadOnly } from '@/lib/demoAdmin'
 
 function isAdmin(request: NextRequest) {
   return request.cookies.get('admin_token')?.value === process.env.ADMIN_API_SECRET
 }
 
 export async function POST(request: NextRequest) {
+  if (DEMO_MODE) return demoReadOnly()
   if (!isAdmin(request)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { userId, title, message, type } = await request.json()

@@ -8,6 +8,8 @@ import {
   ArrowDownToLine,
   ArrowUpFromLine,
   TrendingUp,
+  Copy,
+  Bot,
   History,
   User,
   LogOut,
@@ -23,6 +25,8 @@ const navItems = [
   { href: '/dashboard/deposit',      label: 'Deposit',      icon: ArrowDownToLine },
   { href: '/dashboard/withdraw',     label: 'Withdraw',     icon: ArrowUpFromLine },
   { href: '/dashboard/plans',        label: 'My Plans',     icon: TrendingUp },
+  { href: '/dashboard/copy-trading', label: 'Copy Trading', icon: Copy },
+  { href: '/dashboard/ai-bot',       label: 'AI Bot',       icon: Bot },
   { href: '/dashboard/transactions', label: 'Transactions', icon: History },
   { href: '/dashboard/profile',      label: 'Profile',      icon: User },
 ]

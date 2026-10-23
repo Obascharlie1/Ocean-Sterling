@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createNotification } from '@/lib/supabase/notify'
+import { DEMO_MODE } from '@/lib/demo'
+import { DEMO_ADMIN_USERS, DEMO_ADMIN_TRANSACTIONS, demoReadOnly } from '@/lib/demoAdmin'
 
 function isAdmin(request: NextRequest) {
   return request.cookies.get('admin_token')?.value === process.env.ADMIN_API_SECRET
@@ -9,11 +11,18 @@ function isAdmin(request: NextRequest) {
 type Params = { params: Promise<{ id: string }> }
 
 export async function GET(request: NextRequest, { params }: Params) {
+  if (DEMO_MODE) {
+    const { id } = await params
+    const profile = DEMO_ADMIN_USERS.find(u => u.id === id) ?? null
+    if (!profile) return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    const transactions = DEMO_ADMIN_TRANSACTIONS.filter(t => t.user_id === id)
+    return NextResponse.json({ data: { profile, transactions } })
+  }
   if (!isAdmin(request)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const { id } = await params
   const admin = createAdminClient()
 
-  const [{ data: profile, error: pe }, { data: transactions, error: te }] = await Promise.all([
+  const [{ data: profile, error: pe }, { data: transactions }] = await Promise.all([
     admin.from('profiles').select('*').eq('id', id).single(),
     admin.from('transactions').select('*').eq('user_id', id).order('created_at', { ascending: false }),
   ])
@@ -23,6 +32,7 @@ export async function GET(request: NextRequest, { params }: Params) {
 }
 
 export async function PATCH(request: NextRequest, { params }: Params) {
+  if (DEMO_MODE) return demoReadOnly()
   if (!isAdmin(request)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const { id } = await params
   const body = await request.json()
@@ -53,6 +63,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(request: NextRequest, { params }: Params) {
+  if (DEMO_MODE) return demoReadOnly()
   if (!isAdmin(request)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const { id } = await params
   const admin = createAdminClient()

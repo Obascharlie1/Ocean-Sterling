@@ -157,7 +157,7 @@ export default function RegisterPage() {
     <div className="w-full max-w-sm">
       {/* Mobile logo */}
       <div className="lg:hidden flex items-center mb-8">
-        <Wordmark className="text-lg" />
+        <Wordmark className="h-8" />
       </div>
 
       <div className="mb-6">
