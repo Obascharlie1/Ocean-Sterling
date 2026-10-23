@@ -9,6 +9,7 @@ import {
 import { TopBar } from '@/components/dashboard/TopBar'
 import { createClient } from '@/lib/supabase/client'
 import { DEMO_MODE, DEMO_PROFILE, DEMO_TRANSACTIONS } from '@/lib/demo'
+import { useCurrency } from '@/lib/currency'
 
 interface Profile {
   full_name: string
@@ -39,14 +40,11 @@ const RANGE_SHAPE: Record<Range, { points: number; start: number }> = {
 }
 
 const MARKETS = [
-  { sym: 'BTC',  name: 'Bitcoin',  price: '71,420.00', chg: 1.77,  spark: [4, 5, 4.6, 5.4, 5.1, 6, 6.3, 6.1, 7] },
-  { sym: 'ETH',  name: 'Ethereum', price: '3,847.10',  chg: 2.38,  spark: [3, 3.4, 3.2, 3.9, 4.1, 3.8, 4.4, 4.6, 4.9] },
-  { sym: 'SPX',  name: 'S&P 500',  price: '5,842.31',  chg: 0.84,  spark: [5, 5.2, 5.1, 5.3, 5.5, 5.4, 5.6, 5.7, 5.8] },
-  { sym: 'XAU',  name: 'Gold',     price: '2,341.50',  chg: -0.43, spark: [6, 5.8, 5.9, 5.6, 5.7, 5.4, 5.5, 5.3, 5.2] },
+  { sym: 'BTC',  name: 'Bitcoin',  price: 71420.00, chg: 1.77,  spark: [4, 5, 4.6, 5.4, 5.1, 6, 6.3, 6.1, 7] },
+  { sym: 'ETH',  name: 'Ethereum', price: 3847.10,  chg: 2.38,  spark: [3, 3.4, 3.2, 3.9, 4.1, 3.8, 4.4, 4.6, 4.9] },
+  { sym: 'SPX',  name: 'S&P 500',  price: 5842.31,  chg: 0.84,  spark: [5, 5.2, 5.1, 5.3, 5.5, 5.4, 5.6, 5.7, 5.8] },
+  { sym: 'XAU',  name: 'Gold',     price: 2341.50,  chg: -0.43, spark: [6, 5.8, 5.9, 5.6, 5.7, 5.4, 5.5, 5.3, 5.2] },
 ]
-
-const money = (n: number, cents = true) =>
-  n.toLocaleString('en-US', { minimumFractionDigits: cents ? 2 : 0, maximumFractionDigits: cents ? 2 : 0 })
 
 function greeting() {
   const h = new Date().getHours()
@@ -91,6 +89,7 @@ export default function DashboardPage() {
   const [kycDismissed, setKycDismissed] = useState(false)
   const [hover,        setHover]        = useState<number | null>(null)
   const chartRef = useRef<HTMLDivElement>(null)
+  const { format: money, parts } = useCurrency()
 
   useEffect(() => {
     async function load() {
@@ -157,7 +156,7 @@ export default function DashboardPage() {
 
   const firstName = profile?.full_name?.split(' ')[0] ?? 'there'
   const shown = hover !== null ? series[hover] : balance
-  const [dollars, cents] = money(shown).split('.')
+  const { symbol, whole, fraction } = parts(shown)
   const hp = hover !== null ? pts[hover] : null
 
   return (
@@ -219,16 +218,16 @@ export default function DashboardPage() {
               <div>
                 <p className="text-sm text-white/55">{hover !== null ? 'Balance at point' : 'Total balance'}</p>
                 <p className="mt-2 font-semibold tracking-tight tabular-nums leading-none">
-                  <span className="text-white/40 text-3xl sm:text-4xl align-top mr-0.5">$</span>
-                  <span className="text-5xl sm:text-6xl">{dollars}</span>
-                  <span className="text-white/40 text-3xl sm:text-4xl">.{cents}</span>
+                  <span className="text-white/40 text-3xl sm:text-4xl align-top mr-0.5">{symbol}</span>
+                  <span className="text-5xl sm:text-6xl">{whole}</span>
+                  {fraction && <span className="text-white/40 text-3xl sm:text-4xl">.{fraction}</span>}
                 </p>
                 <div className="mt-4 flex items-center gap-2.5 text-sm">
                   <span className="inline-flex items-center gap-1 rounded-full bg-brand-primary/15 text-brand-secondary px-2.5 py-1 font-semibold tabular-nums">
                     <ArrowUpRight size={14} strokeWidth={2.5} />
                     {profitPct.toFixed(2)}%
                   </span>
-                  <span className="text-white/55 tabular-nums">+${money(profit)} all time</span>
+                  <span className="text-white/55 tabular-nums">+{money(profit)} all time</span>
                 </div>
               </div>
 
@@ -278,8 +277,8 @@ export default function DashboardPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Stat icon={TrendingUp} label="Total profit"    value={`+$${money(profit)}`}    hint="Earned across all plans" accent />
-          <Stat icon={Wallet}     label="Total deposited" value={`$${money(deposited)}`} hint="Principal invested" />
+          <Stat icon={TrendingUp} label="Total profit"    value={`+${money(profit)}`}  hint="Earned across all plans" accent />
+          <Stat icon={Wallet}     label="Total deposited" value={money(deposited)} hint="Principal invested" />
           <Link href="/dashboard/plans" className="group">
             <Stat
               icon={Layers}
@@ -322,7 +321,7 @@ export default function DashboardPage() {
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-semibold tabular-nums text-dark-base dark:text-white">
-                          {out ? '−' : '+'}${money(tx.amount)}
+                          {out ? '−' : '+'}{money(tx.amount)}
                         </p>
                         <p className={`text-xs font-medium ${statusTone(tx.status)}`}>{tx.status}</p>
                       </div>
@@ -347,7 +346,7 @@ export default function DashboardPage() {
                     </span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-dark-base dark:text-white">{m.name}</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">${m.price}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">{money(m.price)}</p>
                     </div>
                     <svg viewBox="0 0 64 24" className="w-16 h-6">
                       <polyline points={sp} fill="none" stroke={up ? '#06C167' : '#e11d48'} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />

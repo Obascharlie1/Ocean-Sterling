@@ -5,6 +5,7 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { useTopBarContext } from './TopBarContext'
 import { NotificationBell } from './NotificationBell'
 import { MessagesBell } from './MessagesBell'
+import { CurrencySwitcher } from './CurrencySwitcher'
 
 interface TopBarProps {
   title: string
@@ -39,6 +40,7 @@ export function TopBar({ title, subtitle, verified }: TopBarProps) {
       </div>
 
       <div className="flex items-center gap-1.5 sm:gap-2">
+        <CurrencySwitcher />
         <MessagesBell />
         <NotificationBell />
         <ThemeToggle />

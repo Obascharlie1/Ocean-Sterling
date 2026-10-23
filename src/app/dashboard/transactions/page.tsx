@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { Search, Filter, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { DEMO_MODE, DEMO_TRANSACTIONS } from '@/lib/demo'
+import { useCurrency } from '@/lib/currency'
 
 interface Tx {
   id: string
@@ -33,9 +35,15 @@ export default function TransactionsPage() {
   const [loading,      setLoading]      = useState(true)
   const [search,       setSearch]       = useState('')
   const [activeFilter, setActiveFilter] = useState('All')
+  const { format: money } = useCurrency()
 
   useEffect(() => {
     async function load() {
+      if (DEMO_MODE) {
+        setTransactions(DEMO_TRANSACTIONS)
+        setLoading(false)
+        return
+      }
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
@@ -90,13 +98,13 @@ export default function TransactionsPage() {
           <div className="bg-light-base dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl p-4">
             <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Total In</p>
             <p className="text-base sm:text-lg font-bold text-dark-base dark:text-white">
-              +${totalIn.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              +{money(totalIn)}
             </p>
           </div>
           <div className="bg-light-base dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl p-4">
             <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Total Out</p>
             <p className="text-base sm:text-lg font-bold text-brand-primary">
-              -${totalOut.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              -{money(totalOut)}
             </p>
           </div>
           <div className="bg-light-base dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl p-4">
@@ -151,7 +159,7 @@ export default function TransactionsPage() {
                   <tr key={tx.id} className="hover:bg-light-surface dark:hover:bg-dark-surface transition-colors">
                     <td className="px-5 py-3.5 text-sm font-medium text-dark-base dark:text-white">{tx.type}</td>
                     <td className={`px-5 py-3.5 text-sm font-semibold ${tx.type === 'Withdrawal' ? 'text-brand-primary' : 'text-dark-base dark:text-white'}`}>
-                      {tx.type === 'Withdrawal' ? '-' : '+'}${tx.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {tx.type === 'Withdrawal' ? '-' : '+'}{money(tx.amount)}
                     </td>
                     <td className="px-5 py-3.5 text-sm text-slate-500 dark:text-slate-400">{tx.method}</td>
                     <td className="px-5 py-3.5 text-sm text-slate-500 dark:text-slate-400">{formatDate(tx.created_at)}</td>
@@ -176,7 +184,7 @@ export default function TransactionsPage() {
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{tx.method} · {formatDate(tx.created_at)}</p>
                 </div>
                 <p className={`text-sm font-bold flex-shrink-0 ${tx.type === 'Withdrawal' ? 'text-brand-primary' : 'text-dark-base dark:text-white'}`}>
-                  {tx.type === 'Withdrawal' ? '-' : '+'}${tx.amount.toLocaleString()}
+                  {tx.type === 'Withdrawal' ? '-' : '+'}{money(tx.amount)}
                 </p>
               </div>
             ))}
