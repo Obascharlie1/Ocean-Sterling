@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { DEMO_PROFILE, DEMO_TRANSACTIONS } from '@/lib/demo'
+import { computeBalance } from '@/lib/balance'
 
 /**
  * Sample data for the admin panel in local demo mode (see DEMO_MODE in demo.ts).
@@ -29,24 +30,29 @@ export interface DemoAdminProfile {
   created_at: string
 }
 
+// Transactions first, so each user's balance can be derived from them.
+export const DEMO_ADMIN_TRANSACTIONS = [
+  ...DEMO_TRANSACTIONS.map(t => ({ ...t, user_id: 'demo-alex', note: null, receipt_url: null })),
+  { id: 'demo-t1', user_id: 'demo-sam',   type: 'Deposit',    amount: 2500,  method: 'Bitcoin',       status: 'Pending',   note: null, receipt_url: null, created_at: daysAgo(0.2) },
+  { id: 'demo-t2', user_id: 'demo-sam',   type: 'Deposit',    amount: 10000, method: 'Bank Transfer', status: 'Completed', note: null, receipt_url: null, created_at: daysAgo(35) },
+  { id: 'demo-t3', user_id: 'demo-jules', type: 'Deposit',    amount: 950,   method: 'PayPal',        status: 'Completed', note: null, receipt_url: null, created_at: daysAgo(11) },
+  { id: 'demo-t5', user_id: 'demo-kim',   type: 'Deposit',    amount: 60000, method: 'Bank Transfer', status: 'Completed', note: null, receipt_url: null, created_at: daysAgo(118) },
+  { id: 'demo-t4', user_id: 'demo-kim',   type: 'Withdrawal', amount: 3000,  method: 'Bank Transfer', status: 'Pending',   note: null, receipt_url: null, created_at: daysAgo(3) },
+].sort((a, b) => b.created_at.localeCompare(a.created_at))
+
+const balanceFor = (userId: string, profit: number) =>
+  computeBalance(DEMO_ADMIN_TRANSACTIONS.filter(t => t.user_id === userId), profit)
+
 export const DEMO_ADMIN_USERS: DemoAdminProfile[] = [
   profile({
     id: 'demo-alex', full_name: DEMO_PROFILE.full_name, email: DEMO_PROFILE.email, country: DEMO_PROFILE.country,
-    plan: DEMO_PROFILE.plan, balance: DEMO_PROFILE.balance, profit: DEMO_PROFILE.profit, kyc_status: 'Verified',
-    kyc_doc_type: 'Passport', kyc_submitted_at: daysAgo(200), created_at: DEMO_PROFILE.created_at,
+    plan: DEMO_PROFILE.plan, balance: balanceFor('demo-alex', DEMO_PROFILE.profit), profit: DEMO_PROFILE.profit,
+    kyc_status: 'Verified', kyc_doc_type: 'Passport', kyc_submitted_at: daysAgo(200), created_at: DEMO_PROFILE.created_at,
   }),
-  profile({ id: 'demo-sam',   full_name: 'Sam Rivera',   email: 'sam@example.com',   country: 'Canada',         plan: 'Silver', balance: 12400, profit: 860,  kyc_status: 'Pending', kyc_doc_type: "Driver's License", kyc_submitted_at: daysAgo(1), created_at: daysAgo(40) }),
-  profile({ id: 'demo-jules', full_name: 'Jules Okafor', email: 'jules@example.com', country: 'United Kingdom', plan: 'Starter', balance: 950,  created_at: daysAgo(12) }),
-  profile({ id: 'demo-kim',   full_name: 'Kim Laurent',  email: 'kim@example.com',   country: 'France',         plan: 'Gold',   balance: 64000, profit: 5200, kyc_status: 'Verified', kyc_doc_type: 'National ID', kyc_submitted_at: daysAgo(70), is_suspended: true, created_at: daysAgo(120) }),
+  profile({ id: 'demo-sam',   full_name: 'Sam Rivera',   email: 'sam@example.com',   country: 'Canada',         plan: 'Silver',  balance: balanceFor('demo-sam', 860),   profit: 860,  kyc_status: 'Pending', kyc_doc_type: "Driver's License", kyc_submitted_at: daysAgo(1), created_at: daysAgo(40) }),
+  profile({ id: 'demo-jules', full_name: 'Jules Okafor', email: 'jules@example.com', country: 'United Kingdom', plan: 'Starter', balance: balanceFor('demo-jules', 0),            created_at: daysAgo(12) }),
+  profile({ id: 'demo-kim',   full_name: 'Kim Laurent',  email: 'kim@example.com',   country: 'France',         plan: 'Gold',    balance: balanceFor('demo-kim', 5200),  profit: 5200, kyc_status: 'Verified', kyc_doc_type: 'National ID', kyc_submitted_at: daysAgo(70), is_suspended: true, created_at: daysAgo(120) }),
 ]
-
-export const DEMO_ADMIN_TRANSACTIONS = [
-  ...DEMO_TRANSACTIONS.map(t => ({ ...t, user_id: 'demo-alex', note: null, receipt_url: null })),
-  { id: 'demo-t1', user_id: 'demo-sam',   type: 'Deposit',    amount: 2500, method: 'Bitcoin',       status: 'Pending',   note: null, receipt_url: null, created_at: daysAgo(0.2) },
-  { id: 'demo-t2', user_id: 'demo-sam',   type: 'Deposit',    amount: 10000, method: 'Bank Transfer', status: 'Completed', note: null, receipt_url: null, created_at: daysAgo(35) },
-  { id: 'demo-t3', user_id: 'demo-jules', type: 'Deposit',    amount: 950,  method: 'PayPal',        status: 'Completed', note: null, receipt_url: null, created_at: daysAgo(11) },
-  { id: 'demo-t4', user_id: 'demo-kim',   type: 'Withdrawal', amount: 3000, method: 'Bank Transfer', status: 'Pending',   note: null, receipt_url: null, created_at: daysAgo(3) },
-].sort((a, b) => b.created_at.localeCompare(a.created_at))
 
 export function demoReadOnly() {
   return NextResponse.json({ error: 'Demo mode — changes aren’t saved.' }, { status: 403 })

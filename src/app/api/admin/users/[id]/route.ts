@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createNotification } from '@/lib/supabase/notify'
+import { recomputeBalance } from '@/lib/supabase/recomputeBalance'
 import { DEMO_MODE } from '@/lib/demo'
 import { DEMO_ADMIN_USERS, DEMO_ADMIN_TRANSACTIONS, demoReadOnly } from '@/lib/demoAdmin'
 
@@ -39,7 +40,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   const admin = createAdminClient()
 
   // Only allow specific fields to be updated
-  const allowed = ['balance', 'profit', 'plan', 'kyc_status', 'is_suspended', 'full_name', 'country']
+  // Balance is derived from transactions + profit, so it is never set directly.
+  const allowed = ['profit', 'plan', 'kyc_status', 'is_suspended', 'full_name', 'country']
   const updates: Record<string, unknown> = {}
   for (const key of allowed) {
     if (key in body) updates[key] = body[key]
@@ -53,6 +55,11 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+
+  // Profit feeds into the balance, so recompute and reflect it in the response.
+  if ('profit' in updates && data) {
+    data.balance = await recomputeBalance(admin, id)
+  }
 
   // Send notification when KYC is marked as Verified
   if (body.kyc_status === 'Verified') {

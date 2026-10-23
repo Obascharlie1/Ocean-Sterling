@@ -19,7 +19,7 @@ export const DEMO_PROFILE = {
   full_name: DEMO_USER.name,
   email: DEMO_USER.email,
   balance: 128450.75,
-  profit: 18230.5,
+  profit: 18450.75,
   plan: 'Gold',
   kyc_status: 'Verified',
   gender: 'Prefer not to say',
@@ -32,11 +32,10 @@ export const DEMO_PROFILE = {
 }
 
 export const DEMO_TRANSACTIONS = [
-  { id: 'd1', type: 'Deposit',    amount: 50000,  method: 'Bank transfer', status: 'Completed', created_at: daysAgo(7) },
-  { id: 'd2', type: 'Deposit',    amount: 25000,  method: 'Bitcoin',       status: 'Completed', created_at: daysAgo(4) },
-  { id: 'd3', type: 'Withdrawal', amount: 8000,   method: 'Bank transfer', status: 'Pending',   created_at: daysAgo(1) },
+  { id: 'd1', type: 'Deposit',    amount: 100000, method: 'Bank transfer', status: 'Completed', created_at: daysAgo(30) },
+  { id: 'd2', type: 'Deposit',    amount: 25000,  method: 'Bitcoin',       status: 'Completed', created_at: daysAgo(18) },
+  { id: 'd3', type: 'Withdrawal', amount: 15000,  method: 'Bank transfer', status: 'Completed', created_at: daysAgo(12) },
   { id: 'd4', type: 'Profit',     amount: 4230.5, method: 'Gold plan',     status: 'Completed', created_at: daysAgo(0.5) },
-  { id: 'd5', type: 'Profit',     amount: 3815.2, method: 'Gold plan',     status: 'Completed', created_at: daysAgo(14) },
-  { id: 'd6', type: 'Withdrawal', amount: 2500,   method: 'PayPal',        status: 'Completed', created_at: daysAgo(21) },
-  { id: 'd7', type: 'Deposit',    amount: 10000,  method: 'PayPal',        status: 'Rejected',  created_at: daysAgo(30) },
+  { id: 'd5', type: 'Withdrawal', amount: 8000,   method: 'Bank transfer', status: 'Pending',   created_at: daysAgo(1) },
+  { id: 'd6', type: 'Deposit',    amount: 10000,  method: 'PayPal',        status: 'Rejected',  created_at: daysAgo(40) },
 ].sort((a, b) => b.created_at.localeCompare(a.created_at))

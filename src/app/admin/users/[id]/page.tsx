@@ -12,6 +12,8 @@ import {
   RotateCcw,
 } from 'lucide-react'
 
+import { computeBalance, totalDeposits, totalWithdrawals } from '@/lib/balance'
+
 /* ─── types ─────────────────────────────────────────────────────────────── */
 
 interface Profile {
@@ -69,9 +71,6 @@ export default function AdminUserDetailPage() {
   const [error,        setError]        = useState('')
 
   /* edit state */
-  const [editingBal,    setEditingBal]    = useState(false)
-  const [balInput,      setBalInput]      = useState('')
-  const [savingBal,     setSavingBal]     = useState(false)
   const [editingProfit, setEditingProfit] = useState(false)
   const [profitInput,   setProfitInput]   = useState('')
   const [savingProfit,  setSavingProfit]  = useState(false)
@@ -81,6 +80,7 @@ export default function AdminUserDetailPage() {
   const [showAddForm, setShowAddForm] = useState(false)
   const [addAmount,   setAddAmount]   = useState('')
   const [addMethod,   setAddMethod]   = useState('Bank Transfer')
+  const [addType,     setAddType]     = useState<'Deposit' | 'Withdrawal'>('Deposit')
   const [addNote,     setAddNote]     = useState('')
   const [addLoading,  setAddLoading]  = useState(false)
 
@@ -140,15 +140,6 @@ export default function AdminUserDetailPage() {
     }
     setProfile(json.data)
     return true
-  }
-
-  async function saveBalance() {
-    const v = parseFloat(balInput)
-    if (isNaN(v) || v < 0) { setEditingBal(false); return }
-    setSavingBal(true)
-    await patchProfile({ balance: v })
-    setSavingBal(false)
-    setEditingBal(false)
   }
 
   async function saveProfit() {
@@ -220,12 +211,13 @@ export default function AdminUserDetailPage() {
     const res = await fetch('/api/admin/transactions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, amount: amt, method: addMethod, note: addNote || null }),
+      body: JSON.stringify({ userId, amount: amt, method: addMethod, note: addNote || null, type: addType }),
     })
 
     if (res.ok) {
       setAddAmount('')
       setAddNote('')
+      setAddType('Deposit')
       setShowAddForm(false)
       await load()
     }
@@ -291,7 +283,9 @@ export default function AdminUserDetailPage() {
     return true
   })
   const pendingCount = userTxs.filter(t => t.status === 'Pending').length
-  const totalDeposited = userTxs.filter(t => t.type === 'Deposit' && t.status === 'Completed').reduce((s, t) => s + t.amount, 0)
+  const totalDeposited = totalDeposits(userTxs)
+  const totalWithdrawn = totalWithdrawals(userTxs)
+  const computedBalance = computeBalance(userTxs, profile.profit ?? 0)
 
   const initials = profile.full_name
     ? profile.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
@@ -474,40 +468,15 @@ export default function AdminUserDetailPage() {
         </div>
         <div className="p-5 grid grid-cols-1 sm:grid-cols-3 gap-5">
 
-          {/* Balance — editable */}
+          {/* Balance — auto-computed, read-only */}
           <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Balance (Profit)</p>
-              {!editingBal && (
-                <button onClick={() => { setEditingBal(true); setBalInput(String(profile.balance)) }}
-                  className="text-slate-400 hover:text-brand-primary transition-colors" title="Edit balance">
-                  <Edit2 size={13} />
-                </button>
-              )}
-            </div>
-            {editingBal ? (
-              <div className="space-y-2">
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-semibold">$</span>
-                  <input type="number" value={balInput} onChange={e => setBalInput(e.target.value)} min="0" autoFocus
-                    className="w-full pl-7 pr-3 py-2.5 border border-brand-primary bg-light-base dark:bg-dark-card text-dark-base dark:text-white text-lg font-bold focus:outline-none" />
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={saveBalance} disabled={savingBal}
-                    className="flex-1 flex items-center justify-center gap-1 py-2 bg-brand-primary hover:bg-brand-dim disabled:opacity-60 text-white text-xs font-bold transition-colors">
-                    {savingBal ? <Loader2 size={12} className="animate-spin" /> : <><Check size={12} /> Save</>}
-                  </button>
-                  <button onClick={() => setEditingBal(false)}
-                    className="flex-1 flex items-center justify-center gap-1 py-2 border border-light-border dark:border-dark-border text-xs font-semibold text-slate-500 dark:text-slate-400 hover:bg-light-surface dark:hover:bg-dark-surface transition-colors">
-                    <X size={12} /> Cancel
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <p className="text-3xl font-bold text-dark-base dark:text-white">
-                ${(profile.balance ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </p>
-            )}
+            <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+              Balance <span className="normal-case tracking-normal text-slate-400">(auto)</span>
+            </p>
+            <p className="text-3xl font-bold text-dark-base dark:text-white">
+              ${computedBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Deposits − withdrawals + profit</p>
           </div>
 
           {/* Profit — editable */}
@@ -556,6 +525,27 @@ export default function AdminUserDetailPage() {
           </div>
 
         </div>
+
+        {/* Balance breakdown */}
+        <div className="px-5 pb-5">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-light-surface dark:bg-dark-surface px-4 py-3 text-sm">
+            <span className="text-emerald-600 dark:text-emerald-400 font-semibold tabular-nums">+${totalDeposited.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            <span className="text-slate-400 text-xs">deposits</span>
+            <span className="text-slate-300 dark:text-slate-600">·</span>
+            <span className="text-red-600 dark:text-red-400 font-semibold tabular-nums">−${totalWithdrawn.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            <span className="text-slate-400 text-xs">withdrawals</span>
+            <span className="text-slate-300 dark:text-slate-600">·</span>
+            <span className="text-emerald-600 dark:text-emerald-400 font-semibold tabular-nums">+${(profile.profit ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            <span className="text-slate-400 text-xs">profit</span>
+            <span className="ml-auto flex items-center gap-2">
+              <span className="text-slate-400 text-xs">= balance</span>
+              <span className="font-bold text-dark-base dark:text-white tabular-nums">${computedBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </span>
+          </div>
+          <p className="mt-2 text-[11px] text-slate-400">
+            Balance updates automatically from transactions and profit. Use <span className="font-semibold">Adjust balance</span> below to credit or debit manually.
+          </p>
+        </div>
       </section>
 
       {/* ── Section 2: KYC ─────────────────────────────────────────────── */}
@@ -582,7 +572,7 @@ export default function AdminUserDetailPage() {
               onClick={() => { setShowAddForm(v => !v); setTxFilter('All') }}
               className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold bg-brand-primary hover:bg-brand-dim text-white transition-colors"
             >
-              <Plus size={13} /> Add Deposit
+              <Plus size={13} /> Adjust balance
             </button>
           </div>
         </div>
@@ -590,7 +580,19 @@ export default function AdminUserDetailPage() {
         {/* Add deposit form */}
         {showAddForm && (
           <form onSubmit={handleAddDeposit} className="px-5 py-4 border-b border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface space-y-3">
-            <p className="text-xs font-bold text-dark-base dark:text-white uppercase tracking-wider">New Deposit</p>
+            <p className="text-xs font-bold text-dark-base dark:text-white uppercase tracking-wider">Manual adjustment</p>
+            <div className="inline-flex p-0.5 bg-light-base dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg">
+              {(['Deposit', 'Withdrawal'] as const).map(t => (
+                <button key={t} type="button" onClick={() => setAddType(t)}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${
+                    addType === t
+                      ? (t === 'Deposit' ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white')
+                      : 'text-slate-500 dark:text-slate-400'
+                  }`}>
+                  {t === 'Deposit' ? 'Credit (+)' : 'Debit (−)'}
+                </button>
+              ))}
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Amount (USD)</label>
@@ -618,7 +620,7 @@ export default function AdminUserDetailPage() {
                 className="flex items-center gap-1.5 px-4 py-2.5 bg-brand-primary hover:bg-brand-dim disabled:opacity-60 disabled:cursor-not-allowed text-white text-xs font-bold transition-colors">
                 {addLoading
                   ? <Loader2 size={13} className="animate-spin" />
-                  : <><Check size={13} /> Credit Balance</>
+                  : <><Check size={13} /> {addType === 'Deposit' ? 'Credit balance' : 'Debit balance'}</>
                 }
               </button>
               <button type="button" onClick={() => setShowAddForm(false)}

@@ -2,10 +2,12 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Wordmark } from '@/components/ui/Wordmark'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+
+const field = 'h-12 w-full rounded-2xl bg-black/[0.03] dark:bg-white/[0.04] ring-1 ring-black/[0.08] dark:ring-white/[0.08] px-4 text-[15px] text-dark-base dark:text-white placeholder:text-slate-400 outline-none transition focus:ring-2 focus:ring-brand-primary focus:bg-white dark:focus:bg-white/[0.06]'
+const label = 'block text-sm font-medium text-dark-base dark:text-white mb-1.5'
 
 export default function LoginPage() {
   const router      = useRouter()
@@ -30,10 +32,8 @@ export default function LoginPage() {
       return
     }
 
-    // Store remember-me preference so SessionGuard can enforce it
     localStorage.setItem('bit-tesla-remember', rememberMe ? 'true' : 'false')
     if (!rememberMe) {
-      // Mark this browser session as active; cleared automatically on tab/browser close
       sessionStorage.setItem('bit-tesla-session', 'true')
     }
 
@@ -42,42 +42,34 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="w-full max-w-sm">
-      <div className="lg:hidden flex items-center mb-8">
-        <Wordmark className="h-8" />
-      </div>
-
+    <div className="w-full">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-dark-base dark:text-white mb-1">Welcome back</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">Sign in to your account to continue</p>
+        <h1 className="text-[28px] font-semibold tracking-tight text-dark-base dark:text-white">Welcome back</h1>
+        <p className="mt-1.5 text-[15px] text-slate-500 dark:text-slate-400">Sign in to pick up where you left off.</p>
       </div>
 
       {error && (
-        <div className="mb-5 px-4 py-3 bg-brand-primary/10 border border-brand-primary/30 text-brand-primary text-sm">
+        <div className="mb-5 rounded-2xl bg-rose-500/[0.07] ring-1 ring-rose-500/25 px-4 py-3 text-sm text-rose-600 dark:text-rose-400">
           {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-xs font-semibold text-dark-base dark:text-white uppercase tracking-wider mb-2">
-            Email Address
-          </label>
+          <label className={label}>Email address</label>
           <input
             type="email"
             value={email}
             onChange={e => setEmail(e.target.value)}
-            placeholder="john@example.com"
+            placeholder="you@example.com"
             autoComplete="email"
             required
-            className="w-full px-4 py-3 border border-light-border dark:border-dark-border bg-light-base dark:bg-dark-card text-dark-base dark:text-white placeholder:text-slate-400 text-sm focus:outline-none focus:border-brand-primary transition-colors"
+            className={field}
           />
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-dark-base dark:text-white uppercase tracking-wider mb-2">
-            Password
-          </label>
+          <label className={label}>Password</label>
           <div className="relative">
             <input
               type={showPw ? 'text' : 'password'}
@@ -86,25 +78,25 @@ export default function LoginPage() {
               placeholder="••••••••"
               autoComplete="current-password"
               required
-              className="w-full px-4 py-3 pr-11 border border-light-border dark:border-dark-border bg-light-base dark:bg-dark-card text-dark-base dark:text-white placeholder:text-slate-400 text-sm focus:outline-none focus:border-brand-primary transition-colors"
+              className={`${field} pr-11`}
             />
-            <button type="button" onClick={() => setShowPw(s => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
-              {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+            <button type="button" onClick={() => setShowPw(s => !s)} aria-label={showPw ? 'Hide password' : 'Show password'} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+              {showPw ? <EyeOff size={17} /> : <Eye size={17} />}
             </button>
           </div>
         </div>
 
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between pt-1">
           <label className="flex items-center gap-2 cursor-pointer select-none">
             <input
               type="checkbox"
               checked={rememberMe}
               onChange={e => setRememberMe(e.target.checked)}
-              className="w-4 h-4 border border-light-border dark:border-dark-border bg-light-base dark:bg-dark-card accent-brand-primary flex-shrink-0"
+              className="w-4 h-4 rounded accent-brand-primary flex-shrink-0"
             />
-            <span className="text-xs text-slate-500 dark:text-slate-400">Remember me</span>
+            <span className="text-sm text-slate-500 dark:text-slate-400">Remember me</span>
           </label>
-          <Link href="/auth/forgot-password" className="text-xs text-brand-primary hover:text-brand-dim transition-colors font-medium">
+          <Link href="/auth/forgot-password" className="text-sm text-brand-primary hover:text-brand-dim transition-colors font-medium">
             Forgot password?
           </Link>
         </div>
@@ -112,16 +104,16 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-brand-primary hover:bg-brand-dim disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-3.5 text-sm transition-colors flex items-center justify-center gap-2"
+          className="w-full h-12 rounded-full bg-dark-base text-white dark:bg-white dark:text-dark-base text-[15px] font-semibold inline-flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 transition"
         >
-          {loading ? <><Loader2 size={16} className="animate-spin" /> Signing in…</> : <>Sign In <ArrowRight size={16} /></>}
+          {loading ? <><Loader2 size={17} className="animate-spin" /> Signing in…</> : <>Sign in <ArrowRight size={16} /></>}
         </button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
+      <p className="mt-7 text-center text-sm text-slate-500 dark:text-slate-400">
         Don&apos;t have an account?{' '}
-        <Link href="/auth/register" className="text-brand-primary hover:text-brand-dim font-medium transition-colors">
-          Create account
+        <Link href="/auth/register" className="text-brand-primary hover:text-brand-dim font-semibold transition-colors">
+          Create one
         </Link>
       </p>
     </div>

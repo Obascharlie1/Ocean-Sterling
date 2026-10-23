@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { recomputeBalance } from '@/lib/supabase/recomputeBalance'
 import { DEMO_MODE } from '@/lib/demo'
 import { DEMO_ADMIN_TRANSACTIONS, demoReadOnly } from '@/lib/demoAdmin'
 
@@ -25,25 +26,23 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ data })
 }
 
-// Admin-created deposit — always Completed, credits balance immediately
+// Admin-created manual adjustment — Completed immediately. A Deposit credits
+// the balance, a Withdrawal debits it; the balance is then recomputed.
 export async function POST(request: NextRequest) {
   if (DEMO_MODE) return demoReadOnly()
   if (!isAdmin(request)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  const { userId, amount, method, note } = await request.json()
+  const { userId, amount, method, note, type } = await request.json()
+  const txType = type === 'Withdrawal' ? 'Withdrawal' : 'Deposit'
   const admin = createAdminClient()
 
   const { data: tx, error: txErr } = await admin
     .from('transactions')
-    .insert({ user_id: userId, type: 'Deposit', amount, method, note: note || null, status: 'Completed' })
+    .insert({ user_id: userId, type: txType, amount, method, note: note || null, status: 'Completed' })
     .select()
     .single()
 
   if (txErr) return NextResponse.json({ error: txErr.message }, { status: 400 })
 
-  // Credit the balance immediately
-  const { data: profile } = await admin.from('profiles').select('balance').eq('id', userId).single()
-  const newBalance = (profile?.balance ?? 0) + amount
-  await admin.from('profiles').update({ balance: newBalance }).eq('id', userId)
-
+  await recomputeBalance(admin, userId)
   return NextResponse.json({ data: tx })
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createNotification } from '@/lib/supabase/notify'
+import { recomputeBalance } from '@/lib/supabase/recomputeBalance'
 import { DEMO_MODE } from '@/lib/demo'
 import { demoReadOnly } from '@/lib/demoAdmin'
 
@@ -38,34 +39,17 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
   if (updateErr) return NextResponse.json({ error: updateErr.message }, { status: 400 })
 
-  // Update user balance + send notification
+  // Balance is derived from completed transactions + profit — recompute it
+  // after any status change (approve, reject or revert).
+  await recomputeBalance(admin, tx.user_id)
+
   if (status === 'Completed') {
-    const { data: profile } = await admin
-      .from('profiles')
-      .select('balance')
-      .eq('id', tx.user_id)
-      .single()
-
-    const currentBalance = profile?.balance ?? 0
-    const newBalance = tx.type === 'Deposit'
-      ? currentBalance + tx.amount
-      : Math.max(0, currentBalance - tx.amount)
-
-    await admin.from('profiles').update({ balance: newBalance }).eq('id', tx.user_id)
-
     const fmt = (n: number) => `$${Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
     if (tx.type === 'Deposit') {
       await createNotification(tx.user_id, 'Deposit Approved', `Your deposit of ${fmt(tx.amount)} via ${tx.method} has been approved and credited to your account.`, 'success')
     } else {
       await createNotification(tx.user_id, 'Withdrawal Approved', `Your withdrawal of ${fmt(tx.amount)} via ${tx.method} is being processed and will arrive within 1–3 business days.`, 'success')
     }
-  }
-
-  // Revert completed deposit → deduct from balance
-  if (isRevertToPending) {
-    const { data: profile } = await admin.from('profiles').select('balance').eq('id', tx.user_id).single()
-    const newBalance = Math.max(0, (profile?.balance ?? 0) - tx.amount)
-    await admin.from('profiles').update({ balance: newBalance }).eq('id', tx.user_id)
   }
 
   if (status === 'Rejected') {
@@ -94,15 +78,11 @@ export async function DELETE(request: NextRequest, { params }: Params) {
 
   if (fetchErr || !tx) return NextResponse.json({ error: 'Transaction not found' }, { status: 404 })
 
-  // If deposit was completed, deduct from balance before deleting
-  if (tx.type === 'Deposit' && tx.status === 'Completed') {
-    const { data: profile } = await admin.from('profiles').select('balance').eq('id', tx.user_id).single()
-    const newBalance = Math.max(0, (profile?.balance ?? 0) - tx.amount)
-    await admin.from('profiles').update({ balance: newBalance }).eq('id', tx.user_id)
-  }
-
   const { error: deleteErr } = await admin.from('transactions').delete().eq('id', id)
   if (deleteErr) return NextResponse.json({ error: deleteErr.message }, { status: 400 })
+
+  // Balance is derived — recompute from the remaining transactions.
+  await recomputeBalance(admin, tx.user_id)
 
   return NextResponse.json({ success: true })
 }
