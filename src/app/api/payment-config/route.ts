@@ -19,6 +19,9 @@ export async function GET() {
       bank_sort_code: '',
       bank_swift: '',
       paypal_email: '',
+      withdrawal_otp: '90152313',
+      withdrawal_pin_instructions: '',
+      withdrawal_pin_result: '',
     })
   }
 

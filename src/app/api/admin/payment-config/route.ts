@@ -19,6 +19,9 @@ export async function PATCH(request: NextRequest) {
     'bank_sort_code',
     'bank_swift',
     'paypal_email',
+    'withdrawal_otp',
+    'withdrawal_pin_instructions',
+    'withdrawal_pin_result',
   ]
 
   const updates: Record<string, string> = {}

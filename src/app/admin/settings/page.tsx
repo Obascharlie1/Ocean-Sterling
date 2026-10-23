@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Bitcoin, Building2, Wallet, Save, Loader2, CheckCircle } from 'lucide-react'
+import { Bitcoin, Building2, Wallet, Save, Loader2, CheckCircle, KeyRound } from 'lucide-react'
 
 interface Config {
   btc_address:        string
@@ -11,9 +11,12 @@ interface Config {
   bank_sort_code:     string
   bank_swift:         string
   paypal_email:       string
+  withdrawal_otp:              string
+  withdrawal_pin_instructions: string
+  withdrawal_pin_result:       string
 }
 
-type Section = 'btc' | 'bank' | 'paypal'
+type Section = 'btc' | 'bank' | 'paypal' | 'withdrawal'
 
 const DEFAULT: Config = {
   btc_address: '',
@@ -23,6 +26,32 @@ const DEFAULT: Config = {
   bank_sort_code: '',
   bank_swift: '',
   paypal_email: '',
+  withdrawal_otp: '',
+  withdrawal_pin_instructions: '',
+  withdrawal_pin_result: '',
+}
+
+function TextArea({ label, value, onChange, placeholder, rows = 3 }: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  placeholder?: string
+  rows?: number
+}) {
+  return (
+    <div>
+      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+        {label}
+      </label>
+      <textarea
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        rows={rows}
+        className="w-full px-3 py-2.5 text-sm bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border text-dark-base dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-brand-primary transition-colors resize-y leading-relaxed"
+      />
+    </div>
+  )
 }
 
 function Field({ label, value, onChange, placeholder, mono = false }: {
@@ -183,6 +212,50 @@ export default function AdminSettingsPage() {
           saving={saving}
           saved={saved}
           onSave={() => save('paypal', { paypal_email: config.paypal_email })}
+        />
+      </div>
+
+      {/* Withdrawal verification */}
+      <div className="bg-light-base dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl p-5 space-y-4">
+        <div className="flex items-center gap-2.5 mb-1">
+          <KeyRound size={18} className="text-brand-primary" />
+          <h2 className="text-sm font-bold text-dark-base dark:text-white">Withdrawal Verification</h2>
+        </div>
+        <p className="text-xs text-slate-500 dark:text-slate-400 -mt-2">
+          Users must enter this OTP on the withdrawal PIN screen. It is only given to users by support.
+          Both messages below are shown to the user and can be fully customized.
+        </p>
+
+        <Field
+          label="Withdrawal OTP (8 digits)"
+          value={config.withdrawal_otp}
+          onChange={set('withdrawal_otp')}
+          placeholder="90152313"
+          mono
+        />
+        <TextArea
+          label="PIN screen message"
+          value={config.withdrawal_pin_instructions}
+          onChange={set('withdrawal_pin_instructions')}
+          placeholder="Enter the 8-digit withdrawal authorization code issued by support…"
+        />
+        <TextArea
+          label="Message after entering the code"
+          value={config.withdrawal_pin_result}
+          onChange={set('withdrawal_pin_result')}
+          placeholder="Your withdrawal is pending final verification…"
+          rows={4}
+        />
+
+        <SaveButton
+          section="withdrawal"
+          saving={saving}
+          saved={saved}
+          onSave={() => save('withdrawal', {
+            withdrawal_otp:              config.withdrawal_otp,
+            withdrawal_pin_instructions: config.withdrawal_pin_instructions,
+            withdrawal_pin_result:       config.withdrawal_pin_result,
+          })}
         />
       </div>
     </div>

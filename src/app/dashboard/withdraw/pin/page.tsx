@@ -6,7 +6,11 @@ import { ArrowLeft, CheckCircle, Delete, Loader2 } from 'lucide-react'
 import { TopBar } from '@/components/dashboard/TopBar'
 
 const PIN_LENGTH  = 8
-const MASTER_PIN  = '90152313'
+
+const DEFAULT_INSTRUCTIONS =
+  'Enter the 8-digit withdrawal authorization code (OTP). This code is issued by our support team — contact support via live chat to receive yours.'
+const DEFAULT_RESULT =
+  'Your withdrawal request has been received and is now pending final verification. A support agent will reach out shortly to release your funds.'
 
 interface PendingWithdrawal {
   amount: number
@@ -24,11 +28,24 @@ export default function WithdrawPinPage() {
   const [errorMsg, setErrorMsg] = useState('')
   const [pending, setPending] = useState<PendingWithdrawal | null>(null)
 
+  // Admin-customizable copy + the support-issued OTP, from payment config.
+  const [otp,          setOtp]          = useState('')
+  const [instructions, setInstructions] = useState(DEFAULT_INSTRUCTIONS)
+  const [resultMsg,    setResultMsg]    = useState(DEFAULT_RESULT)
+
   useEffect(() => {
     const raw = sessionStorage.getItem('qv_withdrawal')
     if (raw) {
       try { setPending(JSON.parse(raw)) } catch {}
     }
+    fetch('/api/payment-config')
+      .then(r => r.json())
+      .then(d => {
+        if (typeof d.withdrawal_otp === 'string') setOtp(d.withdrawal_otp.trim())
+        if (d.withdrawal_pin_instructions) setInstructions(d.withdrawal_pin_instructions)
+        if (d.withdrawal_pin_result) setResultMsg(d.withdrawal_pin_result)
+      })
+      .catch(() => {})
   }, [])
 
   function triggerShake() {
@@ -69,10 +86,10 @@ export default function WithdrawPinPage() {
     if (next.length === PIN_LENGTH) {
       const entered = next.join('')
       setTimeout(() => {
-        if (entered === MASTER_PIN) {
+        if (!otp || entered === otp) {
           submitWithdrawal()
         } else {
-          setErrorMsg('Incorrect PIN. Please try again.')
+          setErrorMsg('Incorrect code. Please contact support to obtain your withdrawal OTP.')
           triggerShake()
         }
       }, 150)
@@ -112,11 +129,11 @@ export default function WithdrawPinPage() {
               <CheckCircle className="text-emerald-600 dark:text-emerald-400" size={32} />
             </div>
             <h2 className="text-xl font-bold text-dark-base dark:text-white mb-2">Withdrawal Submitted</h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
               Amount: <span className="font-semibold text-dark-base dark:text-white">{displayAmount}</span>
             </p>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
-              Your withdrawal request is pending review. Funds typically arrive within 1–3 business days.
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed whitespace-pre-line">
+              {resultMsg}
             </p>
             <Link
               href="/dashboard"
@@ -138,7 +155,7 @@ export default function WithdrawPinPage() {
               )}
             </div>
 
-            <p className="text-center text-sm font-semibold text-dark-base dark:text-white mb-5">Enter your 8-digit PIN</p>
+            <p className="text-center text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-5">{instructions}</p>
 
             {/* PIN dots */}
             <div

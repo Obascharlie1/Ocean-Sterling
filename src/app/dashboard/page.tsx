@@ -125,31 +125,32 @@ export default function DashboardPage() {
 
         {/* Metrics grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <div className="col-span-2 relative overflow-hidden rounded-2xl p-5 sm:p-6 border border-white/10 shadow-lg shadow-black/25 bg-[linear-gradient(135deg,#0b0b0b_0%,#2a0a08_42%,#6e1f12_78%,#a85a12_122%)]">
+          <div className="col-span-2 relative overflow-hidden rounded-2xl p-5 sm:p-6 border border-white/10 shadow-lg shadow-black/25 bg-[linear-gradient(135deg,#04120d_0%,#06281c_44%,#065f42_80%,#06c167_135%)]">
             {/* soft ambient glows */}
-            <div className="pointer-events-none absolute -top-16 -right-10 w-48 h-48 rounded-full bg-amber-500/10 blur-3xl" />
-            <div className="pointer-events-none absolute -bottom-20 -left-8 w-48 h-48 rounded-full bg-brand-primary/15 blur-3xl" />
+            <div className="pointer-events-none absolute -top-16 -right-10 w-48 h-48 rounded-full bg-emerald-400/12 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-20 -left-8 w-48 h-48 rounded-full bg-brand-primary/20 blur-3xl" />
             <p className="relative text-xs font-semibold text-white/55 uppercase tracking-wider mb-2">Total Balance</p>
             <p className="relative text-3xl sm:text-4xl font-bold text-white tracking-tight">
-              ${(profile?.profit ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ${(profile?.balance ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
             {(profile?.profit ?? 0) > 0 && (
               <div className="relative flex items-center gap-1.5 mt-2">
-                <ArrowUpRight size={13} className="text-amber-300" />
-                <span className="text-xs font-medium text-amber-200/80">Portfolio growing</span>
+                <ArrowUpRight size={13} className="text-emerald-300" />
+                <span className="text-xs font-medium text-emerald-100/80">+${(profile?.profit ?? 0).toLocaleString()} all-time profit</span>
               </div>
             )}
+          </div>
+
+          <div className="bg-light-base dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl p-5 sm:p-6">
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Total Profit</p>
+            <p className="text-xl sm:text-2xl font-bold text-brand-primary">+${(profile?.profit ?? 0).toLocaleString()}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">All-time</p>
           </div>
 
           <div className="bg-light-base dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl p-5 sm:p-6">
             <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Deposited</p>
             <p className="text-xl sm:text-2xl font-bold text-dark-base dark:text-white">${totalDeposited.toLocaleString()}</p>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Principal</p>
-          </div>
-
-          <div className="bg-light-base dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl p-5 sm:p-6">
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Total Profit</p>
-            <p className="text-xl sm:text-2xl font-bold text-brand-primary">+${(profile?.profit ?? 0).toLocaleString()}</p>
           </div>
 
           <div className="col-span-2 lg:col-span-4 bg-light-base dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl p-5 sm:p-6 flex items-center gap-4">
@@ -196,37 +197,35 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        {/* BTC live chart */}
+        {/* Account chart */}
+        <div className="bg-light-base dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl p-5 sm:p-6">
+          <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+            <div>
+              <h2 className="text-sm font-bold text-dark-base dark:text-white">Account Performance</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Your balance over time</p>
+            </div>
+            <div className="flex gap-1">
+              {timeRanges.map(r => (
+                <button key={r} onClick={() => setActiveRange(r)} className={`px-2 py-1 text-[11px] font-semibold transition-colors ${activeRange === r ? 'bg-brand-primary text-white' : 'text-slate-500 dark:text-slate-400 hover:text-dark-base dark:hover:text-white'}`}>{r}</button>
+              ))}
+            </div>
+          </div>
+          <svg viewBox="0 0 600 160" className="w-full" style={{ height: 160 }} preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="dashGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#06C167" stopOpacity="0.22" />
+                <stop offset="100%" stopColor="#06C167" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            <path d={area} fill="url(#dashGrad)" />
+            <path d={line} fill="none" stroke="#06C167" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+          </svg>
+        </div>
+
+        {/* BTC live market chart */}
         <div className="rounded-xl overflow-hidden">
           <LandingBTCChart />
         </div>
-
-        {/* Chart */}
-        {balance > 0 && (
-          <div className="bg-light-base dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl p-5 sm:p-6">
-            <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
-              <div>
-                <h2 className="text-sm font-bold text-dark-base dark:text-white">Portfolio Performance</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Balance growth</p>
-              </div>
-              <div className="flex gap-1">
-                {timeRanges.map(r => (
-                  <button key={r} onClick={() => setActiveRange(r)} className={`px-2 py-1 text-[11px] font-semibold transition-colors ${activeRange === r ? 'bg-brand-primary text-white' : 'text-slate-500 dark:text-slate-400 hover:text-dark-base dark:hover:text-white'}`}>{r}</button>
-                ))}
-              </div>
-            </div>
-            <svg viewBox="0 0 600 160" className="w-full" style={{ height: 160 }} preserveAspectRatio="none">
-              <defs>
-                <linearGradient id="dashGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#E0241C" stopOpacity="0.18" />
-                  <stop offset="100%" stopColor="#E0241C" stopOpacity="0" />
-                </linearGradient>
-              </defs>
-              <path d={area} fill="url(#dashGrad)" />
-              <path d={line} fill="none" stroke="#E0241C" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
-            </svg>
-          </div>
-        )}
 
         {/* Recent transactions */}
         <div className="bg-light-base dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl">
