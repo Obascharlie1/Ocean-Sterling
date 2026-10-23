@@ -1,10 +1,15 @@
 'use client'
 
-import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { ShieldX, MessageSquare } from 'lucide-react'
 import { Card } from '@/components/dashboard/ui'
 import { Reveal } from '@/components/dashboard/motion'
+
+// Opens the site-wide live chat widget (loaded in the root layout).
+function openLiveChat() {
+  const chat = (window as unknown as { chaport?: { q: (cmd: string) => void } }).chaport
+  chat?.q('open')
+}
 
 export default function SuspendedPage() {
   return (
@@ -26,15 +31,15 @@ export default function SuspendedPage() {
             Your account has been paused by an administrator, so the dashboard and transactions are unavailable for now.
           </p>
           <p className="relative mt-2 text-[15px] leading-relaxed text-slate-500 dark:text-slate-400">
-            If you think this is a mistake, message our support team and we&apos;ll look into it.
+            If you think this is a mistake, contact our support team and we&apos;ll look into it.
           </p>
 
-          <Link
-            href="/dashboard/messages"
+          <button
+            onClick={openLiveChat}
             className="relative mt-8 inline-flex items-center justify-center gap-2 h-12 w-full max-w-xs rounded-full bg-dark-base text-white dark:bg-white dark:text-dark-base text-[15px] font-semibold hover:opacity-90 active:scale-[0.98] transition"
           >
-            <MessageSquare size={17} /> Message support
-          </Link>
+            <MessageSquare size={17} /> Contact support
+          </button>
         </Card>
       </Reveal>
     </div>

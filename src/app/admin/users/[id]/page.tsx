@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import {
@@ -9,7 +9,7 @@ import {
   CheckCircle, XCircle, Plus,
   ShieldCheck, ShieldAlert, ShieldOff,
   FileText, Loader2, Bell, Send, ZoomIn,
-  RotateCcw, MessageCircle,
+  RotateCcw,
 } from 'lucide-react'
 
 /* ─── types ─────────────────────────────────────────────────────────────── */
@@ -98,12 +98,6 @@ export default function AdminUserDetailPage() {
   const [lightboxImg,   setLightboxImg]   = useState<string | null>(null)
 
   /* messaging state */
-  const [messages,    setMessages]    = useState<{ id: string; sender: string; content: string; created_at: string }[]>([])
-  const [msgInput,    setMsgInput]    = useState('')
-  const [msgLoading,  setMsgLoading]  = useState(false)
-  const [msgSending,  setMsgSending]  = useState(false)
-  const [msgOpen,     setMsgOpen]     = useState(false)
-  const msgBottomRef = useRef<HTMLDivElement>(null)
 
   /* notification state */
   const [notifTitle,   setNotifTitle]   = useState('')
@@ -237,42 +231,6 @@ export default function AdminUserDetailPage() {
     }
     setAddLoading(false)
   }
-
-  async function loadMessages() {
-    setMsgLoading(true)
-    const res = await fetch(`/api/admin/users/${userId}/messages`)
-    if (res.ok) {
-      const { data } = await res.json()
-      setMessages(data ?? [])
-    }
-    setMsgLoading(false)
-  }
-
-  async function handleSendMessage(e: React.FormEvent) {
-    e.preventDefault()
-    if (!msgInput.trim()) return
-    setMsgSending(true)
-    const res = await fetch(`/api/admin/users/${userId}/messages`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: msgInput.trim() }),
-    })
-    if (res.ok) {
-      const { data } = await res.json()
-      setMessages(prev => [...prev, data])
-      setMsgInput('')
-      setTimeout(() => msgBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
-    }
-    setMsgSending(false)
-  }
-
-  useEffect(() => {
-    if (msgOpen) loadMessages()
-  }, [msgOpen])
-
-  useEffect(() => {
-    if (msgOpen) msgBottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, msgOpen])
 
   async function loadKycDocs() {
     setKycDocsLoading(true)
@@ -858,69 +816,6 @@ export default function AdminUserDetailPage() {
               ))}
             </div>
           </>
-        )}
-      </section>
-
-      {/* ── Section 4: Messages ────────────────────────────────────────── */}
-      <section className="bg-light-base dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl">
-        <button
-          onClick={() => setMsgOpen(v => !v)}
-          className="w-full px-5 py-4 flex items-center gap-2 border-b border-light-border dark:border-dark-border"
-        >
-          <MessageCircle size={15} className="text-brand-primary" />
-          <h2 className="text-sm font-bold text-dark-base dark:text-white">Messages</h2>
-          <span className="ml-auto text-xs text-slate-500">{msgOpen ? '▲ Hide' : '▼ Open chat'}</span>
-        </button>
-
-        {msgOpen && (
-          <div className="flex flex-col h-96">
-            {/* Message thread */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {msgLoading ? (
-                <div className="flex justify-center py-8"><Loader2 size={20} className="animate-spin text-brand-primary" /></div>
-              ) : messages.length === 0 ? (
-                <p className="text-center text-sm text-slate-400 py-8">No messages yet. Start the conversation below.</p>
-              ) : (
-                messages.map(msg => (
-                  <div key={msg.id} className={`flex ${msg.sender === 'admin' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${
-                      msg.sender === 'admin'
-                        ? 'bg-brand-primary text-white rounded-br-sm'
-                        : 'bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border text-dark-base dark:text-white rounded-bl-sm'
-                    }`}>
-                      {msg.sender === 'user' && (
-                        <p className="text-[10px] font-bold text-brand-primary mb-1 uppercase tracking-wider">{profile.full_name || 'User'}</p>
-                      )}
-                      <p className="leading-relaxed">{msg.content}</p>
-                      <p className={`text-[10px] mt-1 ${msg.sender === 'admin' ? 'text-white/60' : 'text-slate-400'}`}>
-                        {new Date(msg.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
-                      </p>
-                    </div>
-                  </div>
-                ))
-              )}
-              <div ref={msgBottomRef} />
-            </div>
-
-            {/* Input */}
-            <form onSubmit={handleSendMessage} className="border-t border-light-border dark:border-dark-border p-3 flex gap-2">
-              <input
-                type="text"
-                value={msgInput}
-                onChange={e => setMsgInput(e.target.value)}
-                placeholder="Type a message…"
-                className="flex-1 px-3 py-2 border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface text-sm text-dark-base dark:text-white focus:outline-none focus:border-brand-primary transition-colors rounded-lg placeholder:text-slate-400"
-              />
-              <button
-                type="submit"
-                disabled={!msgInput.trim() || msgSending}
-                className="h-9 px-4 flex items-center gap-1.5 bg-brand-primary hover:bg-brand-dim disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors flex-shrink-0"
-              >
-                {msgSending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
-                <span>{msgSending ? 'Sending…' : 'Send'}</span>
-              </button>
-            </form>
-          </div>
         )}
       </section>
 

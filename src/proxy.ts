@@ -52,8 +52,8 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  // Check suspension — only skip the profile fetch for the messages route (always accessible)
-  if (user && pathname.startsWith('/dashboard') && !pathname.startsWith('/dashboard/messages')) {
+  // Check suspension
+  if (user && pathname.startsWith('/dashboard')) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('is_suspended')
