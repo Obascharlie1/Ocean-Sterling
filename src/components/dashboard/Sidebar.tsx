@@ -152,8 +152,8 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
   return (
     <>
       <aside className="hidden lg:flex fixed left-0 top-0 h-full w-[260px] flex-col bg-white dark:bg-[#0E100F] border-r border-black/[0.06] dark:border-white/[0.06] z-40">
-        <div className="flex items-center h-16 px-6">
-          <Wordmark href="/dashboard" className="text-[17px]" />
+        <div className="flex items-center h-20 px-6">
+          <Wordmark href="/dashboard" className="h-14" />
         </div>
         <NavContent />
       </aside>
@@ -172,8 +172,8 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        <div className="flex items-center justify-between h-16 px-5">
-          <Wordmark href="/dashboard" className="text-base" />
+        <div className="flex items-center justify-between h-20 px-5">
+          <Wordmark href="/dashboard" className="h-11" />
           <button
             onClick={onClose}
             aria-label="Close menu"
