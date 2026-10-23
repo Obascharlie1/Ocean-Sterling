@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   Upload, FileText, Loader2, BookOpen, Car, IdCard, Check, X, Lock, ShieldCheck,
-  Hourglass, BadgeCheck, ArrowRight,
+  Hourglass, BadgeCheck, ArrowRight, ZoomIn, ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { Card, PageHeader, PrimaryButton, ErrorNote } from '@/components/dashboard/ui'
@@ -56,7 +56,7 @@ function toUpload(f: File): UploadedFile {
   }
 }
 
-function DropZone({ label, file, onFile }: { label: string; file: UploadedFile | null; onFile: (f: UploadedFile | null) => void }) {
+function DropZone({ label, file, onFile, onView }: { label: string; file: UploadedFile | null; onFile: (f: UploadedFile | null) => void; onView?: () => void }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [over, setOver] = useState(false)
 
@@ -77,13 +77,24 @@ function DropZone({ label, file, onFile }: { label: string; file: UploadedFile |
             transition={{ duration: 0.25, ease: EASE }}
             className="flex items-center gap-4 rounded-2xl ring-1 ring-brand-primary/40 bg-brand-primary/[0.05] p-3 pr-4"
           >
-            <span className="w-16 h-12 rounded-xl overflow-hidden bg-brand-primary/10 grid place-items-center flex-shrink-0">
+            <button
+              type="button"
+              onClick={onView}
+              disabled={!file.preview}
+              aria-label={file.preview ? `Preview ${label}` : undefined}
+              className="group relative w-16 h-12 rounded-xl overflow-hidden bg-brand-primary/10 grid place-items-center flex-shrink-0 enabled:cursor-zoom-in"
+            >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               {file.preview ? <img src={file.preview} alt="" className="w-full h-full object-cover" /> : <FileText size={18} className="text-brand-primary" />}
-            </span>
+              {file.preview && (
+                <span className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 grid place-items-center transition-opacity">
+                  <ZoomIn size={15} className="text-white" />
+                </span>
+              )}
+            </button>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-dark-base dark:text-white truncate">{file.name}</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1"><Check size={12} className="text-brand-primary" /> {file.size} · Ready</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1"><Check size={12} className="text-brand-primary" /> {file.size} · {file.preview ? 'Tap to preview' : 'Ready'}</p>
             </div>
             <button type="button" onClick={() => onFile(null)} aria-label={`Remove ${label}`} className="w-8 h-8 rounded-full grid place-items-center text-slate-500 hover:bg-black/5 dark:hover:bg-white/10 transition">
               <X size={15} />
@@ -128,6 +139,7 @@ export default function KYCPage() {
   const [error,     setError]     = useState('')
   const [kycStatus, setKycStatus] = useState<string>('None')
   const [fetchingStatus, setFetchingStatus] = useState(true)
+  const [viewer,    setViewer]    = useState<'front' | 'back' | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -293,11 +305,11 @@ export default function KYCPage() {
             <Reveal delay={0.1}>
               <Card className="p-6 space-y-5">
                 <h2 className="text-[17px] font-semibold text-dark-base dark:text-white">Upload photos</h2>
-                <DropZone label={needsBack ? 'Front side' : 'Photo page'} file={frontFile} onFile={setFrontFile} />
+                <DropZone label={needsBack ? 'Front side' : 'Photo page'} file={frontFile} onFile={setFrontFile} onView={() => setViewer('front')} />
                 <AnimatePresence initial={false}>
                   {needsBack && (
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3, ease: EASE }} className="overflow-hidden">
-                      <DropZone label="Back side" file={backFile} onFile={setBackFile} />
+                      <DropZone label="Back side" file={backFile} onFile={setBackFile} onView={() => setViewer('back')} />
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -330,7 +342,120 @@ export default function KYCPage() {
           </Reveal>
         </form>
       </div>
+
+      <AnimatePresence>
+        {viewer && (
+          <DocViewer
+            front={frontFile}
+            back={needsBack ? backFile : null}
+            side={viewer}
+            docType={docTypeLabels[docType]}
+            onSide={setViewer}
+            onClose={() => setViewer(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
+  )
+}
+
+/* ─── premium upload preview viewer (user side) ───────────────────────────── */
+
+function DocViewer({ front, back, side, docType, onSide, onClose }: {
+  front: UploadedFile | null
+  back: UploadedFile | null
+  side: 'front' | 'back'
+  docType: string
+  onSide: (s: 'front' | 'back') => void
+  onClose: () => void
+}) {
+  const available = ([['front', front], ['back', back]] as const).filter(([, f]) => f) as [('front' | 'back'), UploadedFile][]
+  const sides = available.map(([s]) => s)
+  const idx = sides.indexOf(side)
+  const current = side === 'front' ? front : back
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose()
+      if (sides.length > 1 && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
+        const next = e.key === 'ArrowRight' ? (idx + 1) % sides.length : (idx - 1 + sides.length) % sides.length
+        onSide(sides[next])
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [idx, sides, onClose, onSide])
+
+  return (
+    <motion.div className="fixed inset-0 z-50 flex items-center justify-center p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
+      <motion.div
+        role="dialog" aria-modal="true" aria-label="Document preview"
+        initial={{ opacity: 0, y: 18, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 12, scale: 0.98 }}
+        transition={{ duration: 0.3, ease: EASE }}
+        className="relative w-full max-w-2xl rounded-[24px] bg-[#0B0F0D] text-white ring-1 ring-white/10 overflow-hidden shadow-[0_40px_80px_-30px_rgba(0,0,0,0.8)]"
+      >
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-white/10">
+          <span className="w-9 h-9 rounded-xl bg-white/[0.06] ring-1 ring-white/10 grid place-items-center flex-shrink-0">
+            <FileText size={16} className="text-brand-secondary" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold truncate">{docType}</p>
+            <p className="text-xs text-white/50 truncate">{current?.name}</p>
+          </div>
+          <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-white/80">Preview</span>
+          <button onClick={onClose} aria-label="Close" className="w-9 h-9 rounded-full grid place-items-center text-white/60 hover:text-white hover:bg-white/10 transition">
+            <X size={17} />
+          </button>
+        </div>
+
+        {sides.length > 1 && (
+          <div className="flex gap-1 px-5 pt-4">
+            {sides.map(s => (
+              <button key={s} onClick={() => onSide(s)} className={`relative px-4 h-8 text-xs font-semibold rounded-full capitalize transition-colors ${side === s ? 'text-dark-base' : 'text-white/60 hover:text-white'}`}>
+                {side === s && <motion.span layoutId="kyc-user-tab" className="absolute inset-0 rounded-full bg-white" transition={{ type: 'spring', stiffness: 500, damping: 38 }} />}
+                <span className="relative">{s}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="relative m-5 rounded-2xl bg-black/40 ring-1 ring-white/[0.06] overflow-hidden grid place-items-center min-h-[280px]">
+          <AnimatePresence mode="wait">
+            {current?.preview
+              ? (
+                <motion.img
+                  key={side}
+                  src={current.preview}
+                  alt={`${docType} — ${side}`}
+                  initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
+                  className="max-h-[62vh] w-auto object-contain"
+                />
+              )
+              : (
+                <div key="nopreview" className="py-16 text-center">
+                  <FileText size={28} className="mx-auto text-white/40" />
+                  <p className="mt-3 text-sm text-white/60">{current?.name ?? 'No preview available'}</p>
+                  <p className="text-xs text-white/40 mt-1">PDFs can&apos;t be previewed here.</p>
+                </div>
+              )}
+          </AnimatePresence>
+
+          {sides.length > 1 && (
+            <>
+              <button onClick={() => onSide(sides[(idx - 1 + sides.length) % sides.length])} aria-label="Previous" className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 hover:bg-black/70 grid place-items-center text-white transition">
+                <ChevronLeft size={18} />
+              </button>
+              <button onClick={() => onSide(sides[(idx + 1) % sides.length])} aria-label="Next" className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 hover:bg-black/70 grid place-items-center text-white transition">
+                <ChevronRight size={18} />
+              </button>
+            </>
+          )}
+        </div>
+
+        <p className="px-5 pb-5 text-xs text-white/45">Make sure every corner is visible and the text is sharp before you submit.</p>
+      </motion.div>
+    </motion.div>
   )
 }
 
