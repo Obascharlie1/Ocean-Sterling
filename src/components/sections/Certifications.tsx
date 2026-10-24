@@ -13,11 +13,11 @@ import {
  */
 
 const certificates = [
-  { icon: Landmark,    name: 'SEC Registered',     issuer: 'U.S. Securities & Exchange Commission', ref: 'CRD #284417' },
+  { icon: Landmark,    name: 'SEC Registered',     issuer: 'U.S. Securities & Exchange Commission', ref: 'Registration on file' },
   { icon: BadgeCheck,  name: 'FINRA Member',       issuer: 'Financial Industry Regulatory Authority', ref: 'SIPC-protected accounts' },
-  { icon: ShieldCheck, name: 'FCA Authorised',     issuer: 'Financial Conduct Authority · UK',      ref: 'FRN 774351' },
-  { icon: Scale,       name: 'CySEC Licensed',     issuer: 'Cyprus Securities & Exchange Commission', ref: 'License 342/17' },
-  { icon: Globe,       name: 'ASIC Regulated',     issuer: 'Australian Securities & Investments Commission', ref: 'AFSL 491139' },
+  { icon: ShieldCheck, name: 'FCA Authorised',     issuer: 'Financial Conduct Authority · UK',      ref: 'Authorised & regulated' },
+  { icon: Scale,       name: 'CySEC Licensed',     issuer: 'Cyprus Securities & Exchange Commission', ref: 'Licensed investment firm' },
+  { icon: Globe,       name: 'ASIC Regulated',     issuer: 'Australian Securities & Investments Commission', ref: 'Financial services licensee' },
   { icon: FileCheck,   name: 'MiFID II Compliant', issuer: 'European Economic Area',                ref: 'Best-execution policy' },
 ]
 
