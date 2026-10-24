@@ -1,11 +1,34 @@
 import Link from 'next/link'
 import { Wordmark } from '@/components/ui/Wordmark'
 
-const footerLinks = {
-  Product: ['Features', 'Markets', 'Pricing', 'API', 'Changelog'],
-  Company: ['About', 'Blog', 'Careers', 'Press', 'Contact'],
-  Legal: ['Privacy Policy', 'Terms of Service', 'Cookie Policy', 'Disclosures'],
-  Support: ['Help Center', 'Community', 'Status', 'Security', 'Compliance'],
+const footerLinks: Record<string, { label: string; href: string }[]> = {
+  Product: [
+    { label: 'Features', href: '/#features' },
+    { label: 'Markets', href: '/markets' },
+    { label: 'Pricing', href: '/#pricing' },
+    { label: 'API', href: '/developers' },
+    { label: 'Changelog', href: '/changelog' },
+  ],
+  Company: [
+    { label: 'About', href: '/about' },
+    { label: 'Blog', href: '/blog' },
+    { label: 'Careers', href: '/careers' },
+    { label: 'Press', href: '/press' },
+    { label: 'Contact', href: '/contact' },
+  ],
+  Legal: [
+    { label: 'Privacy Policy', href: '/privacy' },
+    { label: 'Terms of Service', href: '/terms' },
+    { label: 'Cookie Policy', href: '/cookies' },
+    { label: 'Disclosures', href: '/disclosures' },
+  ],
+  Support: [
+    { label: 'Help Center', href: '/help' },
+    { label: 'Community', href: '/community' },
+    { label: 'Status', href: '/status' },
+    { label: 'Security', href: '/security' },
+    { label: 'Compliance', href: '/compliance' },
+  ],
 }
 
 const socials = [
@@ -77,10 +100,10 @@ export function Footer() {
               </h4>
               <ul className="space-y-2.5">
                 {links.map((link) => (
-                  <li key={link}>
-                    <span className="text-sm text-slate-500 dark:text-slate-400">
-                      {link}
-                    </span>
+                  <li key={link.label}>
+                    <Link href={link.href} className="text-sm text-slate-500 dark:text-slate-400 hover:text-brand-primary transition-colors">
+                      {link.label}
+                    </Link>
                   </li>
                 ))}
               </ul>
