@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { DEMO_MODE } from '@/lib/demo'
 
 export async function GET() {
+  if (DEMO_MODE) return NextResponse.json({ data: [] })
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -17,10 +19,6 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
   const { type, amount, method, note, receipt_url } = await request.json()
 
   if (!type || !amount || !method) {
@@ -29,6 +27,17 @@ export async function POST(request: NextRequest) {
   if (amount <= 0) {
     return NextResponse.json({ error: 'Amount must be positive' }, { status: 400 })
   }
+
+  // Local demo mode — accept the transaction without a database.
+  if (DEMO_MODE) {
+    return NextResponse.json({
+      data: { id: `demo-${Date.now()}`, type, amount, method, note: note || null, status: 'Pending', created_at: new Date().toISOString() },
+    })
+  }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { data, error } = await supabase
     .from('transactions')

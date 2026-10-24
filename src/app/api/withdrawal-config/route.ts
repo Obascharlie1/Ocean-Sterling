@@ -7,10 +7,17 @@ const DEFAULT_INSTRUCTIONS =
 const DEFAULT_RESULT =
   'Your withdrawal request has been received and is now pending final verification. A support agent will reach out shortly to release your funds.'
 
-function messages(p: { withdrawal_pin_instructions?: string | null; withdrawal_pin_result?: string | null }) {
+function messages(p: {
+  withdrawal_pin_instructions?: string | null
+  withdrawal_pin_result?: string | null
+  withdrawal_pin_title?: string | null
+  withdrawal_pin_tone?: string | null
+}) {
   return {
     instructions: p.withdrawal_pin_instructions?.trim() || DEFAULT_INSTRUCTIONS,
     result: p.withdrawal_pin_result?.trim() || DEFAULT_RESULT,
+    title: p.withdrawal_pin_title?.trim() || '',
+    tone: (p.withdrawal_pin_tone as 'success' | 'pending' | 'error') || 'success',
   }
 }
 
@@ -24,7 +31,7 @@ export async function GET() {
 
   const { data } = await supabase
     .from('profiles')
-    .select('withdrawal_pin_instructions, withdrawal_pin_result')
+    .select('withdrawal_pin_instructions, withdrawal_pin_result, withdrawal_pin_title, withdrawal_pin_tone')
     .eq('id', user.id)
     .single()
 

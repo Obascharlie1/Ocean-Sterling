@@ -38,6 +38,8 @@ interface Profile {
   withdrawal_otp_expires_at:   string | null
   withdrawal_pin_instructions: string | null
   withdrawal_pin_result:       string | null
+  withdrawal_pin_title:        string | null
+  withdrawal_pin_tone:         'success' | 'pending' | 'error' | null
 }
 
 interface Tx {
@@ -118,6 +120,8 @@ export default function AdminUserDetailPage() {
   /* withdrawal & security state */
   const [pinInstr,    setPinInstr]    = useState('')
   const [pinResult,   setPinResult]   = useState('')
+  const [pinTitle,    setPinTitle]    = useState('')
+  const [pinTone,     setPinTone]     = useState<'success' | 'pending' | 'error'>('success')
   const [suspMsg,     setSuspMsg]     = useState('')
   const [otpDuration, setOtpDuration] = useState('1h')
   const [secBusy,     setSecBusy]     = useState('')
@@ -179,6 +183,8 @@ export default function AdminUserDetailPage() {
   useEffect(() => {
     if (!profile) return
     setPinInstr(profile.withdrawal_pin_instructions ?? '')
+    setPinTitle(profile.withdrawal_pin_title ?? '')
+    setPinTone(profile.withdrawal_pin_tone ?? 'success')
     setPinResult(profile.withdrawal_pin_result ?? '')
     setSuspMsg(profile.suspension_message ?? '')
   }, [profile])
@@ -927,12 +933,26 @@ export default function AdminUserDetailPage() {
                   <textarea value={pinInstr} onChange={e => setPinInstr(e.target.value)} rows={3} placeholder="Instructions shown to this user on the withdrawal PIN screen…"
                     className="w-full px-3 py-2.5 text-sm border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface text-dark-base dark:text-white placeholder:text-slate-400 rounded-lg focus:outline-none focus:border-brand-primary resize-y leading-relaxed" />
                 </div>
-                <div>
-                  <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Message after entering the code</label>
-                  <textarea value={pinResult} onChange={e => setPinResult(e.target.value)} rows={3} placeholder="Shown after this user submits a withdrawal…"
+                <div className="pt-2 border-t border-dashed border-light-border dark:border-dark-border">
+                  <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Result after entering the code</label>
+                  <div className="flex gap-1.5 mb-2">
+                    {([['success','Submitted'],['pending','Pending'],['error','Error']] as const).map(([t, lbl]) => (
+                      <button key={t} type="button" onClick={() => setPinTone(t)}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+                          pinTone === t
+                            ? (t === 'success' ? 'bg-emerald-500 text-white' : t === 'pending' ? 'bg-amber-500 text-white' : 'bg-red-500 text-white')
+                            : 'bg-slate-100 dark:bg-dark-surface text-slate-500 border border-light-border dark:border-dark-border'
+                        }`}>
+                        {lbl}
+                      </button>
+                    ))}
+                  </div>
+                  <input value={pinTitle} onChange={e => setPinTitle(e.target.value)} placeholder="Result title (e.g. Withdrawal submitted)"
+                    className="w-full px-3 py-2.5 mb-2 text-sm border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface text-dark-base dark:text-white placeholder:text-slate-400 rounded-lg focus:outline-none focus:border-brand-primary" />
+                  <textarea value={pinResult} onChange={e => setPinResult(e.target.value)} rows={3} placeholder="Result message shown after this user submits…"
                     className="w-full px-3 py-2.5 text-sm border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface text-dark-base dark:text-white placeholder:text-slate-400 rounded-lg focus:outline-none focus:border-brand-primary resize-y leading-relaxed" />
                 </div>
-                <button onClick={() => saveFields({ withdrawal_pin_instructions: pinInstr, withdrawal_pin_result: pinResult }, 'msg')} disabled={secBusy === 'msg'}
+                <button onClick={() => saveFields({ withdrawal_pin_instructions: pinInstr, withdrawal_pin_result: pinResult, withdrawal_pin_title: pinTitle, withdrawal_pin_tone: pinTone }, 'msg')} disabled={secBusy === 'msg'}
                   className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold bg-brand-primary hover:bg-brand-dim disabled:opacity-60 text-white rounded-lg transition-colors">
                   {secBusy === 'msg' ? <Loader2 size={13} className="animate-spin" /> : <><Check size={13} /> Save messages</>}
                 </button>

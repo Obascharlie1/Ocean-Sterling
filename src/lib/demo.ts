@@ -35,6 +35,8 @@ export const DEMO_PROFILE = {
   withdrawal_otp_expires_at: null as string | null,
   withdrawal_pin_instructions: '',
   withdrawal_pin_result: '',
+  withdrawal_pin_title: '',
+  withdrawal_pin_tone: 'success' as 'success' | 'pending' | 'error',
 }
 
 export const DEMO_TRANSACTIONS = [

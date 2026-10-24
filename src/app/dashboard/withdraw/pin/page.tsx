@@ -1,9 +1,18 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Delete, Loader2, MessageCircle, KeyRound, Check } from 'lucide-react'
+import Link from 'next/link'
+import { Delete, Loader2, MessageCircle, KeyRound, Check, CheckCircle, XCircle, Hourglass } from 'lucide-react'
 import { TopBar } from '@/components/dashboard/TopBar'
-import { Card, PageHeader, SuccessState, SummaryRow, ErrorNote } from '@/components/dashboard/ui'
+import { Card, PageHeader, SummaryRow, ErrorNote } from '@/components/dashboard/ui'
+
+type ResultTone = 'success' | 'pending' | 'error'
+
+const TONES: Record<ResultTone, { icon: React.ElementType; ring: string; glow: string; title: string }> = {
+  success: { icon: CheckCircle, ring: 'bg-brand-primary shadow-brand-primary/30', glow: 'bg-brand-primary/15', title: 'Withdrawal submitted' },
+  pending: { icon: Hourglass,   ring: 'bg-amber-500 shadow-amber-500/30',         glow: 'bg-amber-400/20',    title: 'Withdrawal pending' },
+  error:   { icon: XCircle,     ring: 'bg-rose-500 shadow-rose-500/30',           glow: 'bg-rose-500/15',     title: 'Withdrawal could not be processed' },
+}
 
 const PIN_LENGTH = 8
 
@@ -34,6 +43,8 @@ export default function WithdrawPinPage() {
   // Admin-customizable, per-user copy from the withdrawal config.
   const [instructions, setInstructions] = useState(DEFAULT_INSTRUCTIONS)
   const [resultMsg,    setResultMsg]    = useState(DEFAULT_RESULT)
+  const [resultTitle,  setResultTitle]  = useState('')
+  const [resultTone,   setResultTone]   = useState<ResultTone>('success')
 
   useEffect(() => {
     const raw = sessionStorage.getItem('qv_withdrawal')
@@ -45,6 +56,8 @@ export default function WithdrawPinPage() {
       .then(d => {
         if (d.instructions) setInstructions(d.instructions)
         if (d.result) setResultMsg(d.result)
+        if (d.title) setResultTitle(d.title)
+        if (d.tone) setResultTone(d.tone)
       })
       .catch(() => {})
   }, [])
@@ -121,19 +134,36 @@ export default function WithdrawPinPage() {
     `$${Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
   if (phase === 'success') {
+    const tone = TONES[resultTone]
+    const Icon = tone.icon
     return (
       <div>
         <TopBar title="Withdraw" />
         <div className="px-4 sm:px-8 py-12 sm:py-16">
-          <SuccessState
-            title="Withdrawal submitted"
-            body={resultMsg}
-            meta={pending && (
-              <p className="text-sm text-slate-500">
+          <Card className="relative overflow-hidden max-w-lg mx-auto px-8 py-12 text-center">
+            <div className={`pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full blur-[90px] ${tone.glow}`} />
+            <div className="relative mx-auto w-20 h-20">
+              <span className={`absolute inset-0 rounded-full animate-ping [animation-iteration-count:2] ${tone.glow}`} />
+              <span className={`relative w-20 h-20 rounded-full grid place-items-center shadow-lg ${tone.ring}`}>
+                <Icon size={34} strokeWidth={2} className="text-white" />
+              </span>
+            </div>
+            <h2 className="relative mt-7 text-2xl font-semibold tracking-tight text-dark-base dark:text-white">{resultTitle || tone.title}</h2>
+            <p className="relative mt-3 text-[15px] leading-relaxed text-slate-500 dark:text-slate-400 whitespace-pre-line">{resultMsg}</p>
+            {pending && (
+              <p className="relative mt-5 text-sm text-slate-500">
                 <span className="font-semibold text-dark-base dark:text-white tabular-nums">{fmt(pending.amount)}</span> via {pending.method}
               </p>
             )}
-          />
+            <div className="relative mt-8 flex flex-col sm:flex-row gap-2.5 justify-center">
+              <Link href="/dashboard" className="h-11 px-6 rounded-full bg-dark-base text-white dark:bg-white dark:text-dark-base text-sm font-semibold inline-flex items-center justify-center hover:opacity-90 transition">
+                Back to overview
+              </Link>
+              <Link href="/dashboard/transactions" className="h-11 px-6 rounded-full ring-1 ring-black/10 dark:ring-white/15 text-sm font-semibold text-dark-base dark:text-white inline-flex items-center justify-center hover:ring-black/25 dark:hover:ring-white/30 transition">
+                View transactions
+              </Link>
+            </div>
+          </Card>
         </div>
       </div>
     )
