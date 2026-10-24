@@ -77,6 +77,52 @@ export const DEMO_TRADERS: Trader[] = [
   { id: 'tr-delta',  name: 'Delta Neutral',  handle: '@deltaneutral',strategy: 'Market-neutral · Options',      risk: 'Low',    monthly_return: 2.8,  win_rate: 93, followers: 12040, spark: spark(0.8), is_active: true, featured: false },
 ]
 
+/* ── Trader generator (admin "Add trader") ───────────────────────────────── */
+
+const FIRST_NAMES = ['Marcus', 'Sofia', 'Daniel', 'Aisha', 'Liam', 'Elena', 'Kenji', 'Maya', 'Lucas', 'Priya', 'Noah', 'Zara', 'Diego', 'Hana', 'Oliver', 'Fatima', 'Ryan', 'Nadia', 'Andre', 'Mei', 'Jonas', 'Leila', 'Mateo', 'Chloe', 'Omar', 'Ingrid', 'Rafael', 'Yuki', 'Sven', 'Amara']
+const LAST_NAMES = ['Chen', 'Rossi', 'Okafor', 'Rahman', 'Walsh', 'Petrova', 'Tanaka', 'Okonkwo', 'Meyer', 'Nair', 'Bennett', 'Haddad', 'Alvarez', 'Kim', 'Grant', 'Zahra', 'Cole', 'Petit', 'Silva', 'Lin', 'Novak', 'Mensah', 'Ibrahim', 'Reyes', 'Larsson', 'Costa', 'Khan', 'Moreau', 'Yilmaz', 'Adeyemi']
+const ALIASES = ['Apex Quant', 'Vertex Capital', 'Orion Edge', 'Quantum Flow', 'Summit Alpha', 'Helios Trading', 'Zenith Partners', 'Nimbus Capital', 'Pinnacle Quant', 'Cobalt Strategies', 'Lumen Macro', 'Ironwood Capital', 'Northstar FX', 'Equinox Trading', 'Titan Momentum']
+const STRATEGIES = [
+  'Momentum · Crypto majors', 'Macro swing · Indices + FX', 'Trend-following · Commodities',
+  'Mean-reversion · Equities', 'Scalping · BTC/ETH', 'Breakout · Altcoins', 'Swing · Tech stocks',
+  'Grid · FX majors', 'Options income · S&P 500', 'Statistical arb · Crypto', 'Carry trade · EM FX', 'Momentum · Gold & oil',
+]
+
+const RISK_PROFILE: Record<RiskLevel, { ret: [number, number]; win: [number, number] }> = {
+  Low:    { ret: [2, 5],   win: [87, 95] },
+  Medium: { ret: [5, 10],  win: [80, 88] },
+  High:   { ret: [10, 18], win: [68, 80] },
+}
+
+const pick = <T,>(arr: readonly T[]): T => arr[Math.floor(Math.random() * arr.length)]
+const rand = (a: number, b: number) => a + Math.random() * (b - a)
+const round1 = (n: number) => Math.round(n * 10) / 10
+
+/** Builds a realistic, randomised trader for the admin "Add trader" action. */
+export function generateTrader(): Trader {
+  const risk = pick(['Low', 'Medium', 'High'] as const)
+  const p = RISK_PROFILE[risk]
+  const name = Math.random() < 0.5
+    ? `${pick(FIRST_NAMES)} ${pick(LAST_NAMES)}`
+    : pick(ALIASES)
+  const handle = '@' + name.toLowerCase().replace(/[^a-z]/g, '') + (Math.random() < 0.4 ? String(Math.floor(rand(1, 99))) : '')
+  const spark = Array.from({ length: 12 }, (_, i) => Math.round(42 + i * rand(1.5, 3.5) + Math.sin(i * 0.8) * 4))
+
+  return {
+    id: `tr-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    name,
+    handle,
+    strategy: pick(STRATEGIES),
+    risk,
+    monthly_return: round1(rand(p.ret[0], p.ret[1])),
+    win_rate: Math.round(rand(p.win[0], p.win[1])),
+    followers: Math.floor(rand(500, 24000)),
+    spark,
+    is_active: true,
+    featured: Math.random() < 0.2,
+  }
+}
+
 /** Simulated running P/L for a copy position, grown from its start time. */
 export function positionPnl(pos: CopyPosition, trader: Trader | undefined, now = Date.now()) {
   if (!trader) return 0

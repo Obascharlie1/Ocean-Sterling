@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Loader2, Plus, Trash2, Check, Star, Power, Bot, Copy as CopyIcon } from 'lucide-react'
 import type { Trader, BotConfig, RiskLevel } from '@/lib/trading'
+import { generateTrader } from '@/lib/trading'
 
 const inputCls = 'w-full px-3 py-2 border border-light-border dark:border-dark-border bg-light-base dark:bg-dark-card text-sm text-dark-base dark:text-white focus:outline-none focus:border-brand-primary transition-colors rounded-lg'
 const RISKS: RiskLevel[] = ['Low', 'Medium', 'High']
@@ -44,13 +45,19 @@ export default function AdminTradingPage() {
   }
 
   async function addTrader() {
-    const body = { name: 'New Trader', handle: '@newtrader', strategy: 'Strategy', risk: 'Medium',
-      monthly_return: 5, win_rate: 80, followers: 0, spark: [1,2,3,4,5,6,7,8], is_active: true, featured: false }
+    const t = generateTrader()
+    setTraders(prev => [...prev, t]) // optimistic — shows the generated trader immediately
+    const { id: _id, ...body } = t
+    void _id
     const res = await fetch('/api/admin/copy-traders', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
     })
-    if (res.ok) { const { data } = await res.json(); setTraders(t => [...t, data]) }
-    else flash((await res.json()).error ?? 'Could not add.')
+    if (res.ok) {
+      const { data } = await res.json()
+      setTraders(prev => prev.map(x => (x.id === t.id ? data : x)))
+    } else {
+      flash((await res.json()).error ?? 'Demo mode — not saved.')
+    }
   }
 
   async function saveConfig(patch: Partial<BotConfig>) {
