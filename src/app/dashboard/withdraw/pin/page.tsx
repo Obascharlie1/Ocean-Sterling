@@ -22,10 +22,7 @@ interface PendingWithdrawal {
 
 type Phase = 'enter' | 'submitting' | 'success'
 
-function openSupportChat() {
-  const w = window as unknown as { chaport?: { q: (...a: unknown[]) => void } }
-  w.chaport?.q('open')
-}
+import { openSmartsupp } from '@/components/ui/SmartsuppChat'
 
 export default function WithdrawPinPage() {
   const [pin,      setPin]      = useState<string>('')
@@ -214,7 +211,7 @@ export default function WithdrawPinPage() {
 
               <button
                 type="button"
-                onClick={openSupportChat}
+                onClick={openSmartsupp}
                 className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-brand-primary hover:opacity-80 transition"
               >
                 <MessageCircle size={16} /> Get your code from support

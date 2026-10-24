@@ -5,13 +5,8 @@ import { motion } from 'framer-motion'
 import { ShieldX, MessageSquare } from 'lucide-react'
 import { Card } from '@/components/dashboard/ui'
 import { Reveal } from '@/components/dashboard/motion'
+import { openSmartsupp } from '@/components/ui/SmartsuppChat'
 import { DEMO_MODE, DEMO_PROFILE } from '@/lib/demo'
-
-// Opens the site-wide live chat widget (loaded in the root layout).
-function openLiveChat() {
-  const chat = (window as unknown as { chaport?: { q: (cmd: string) => void } }).chaport
-  chat?.q('open')
-}
 
 const DEFAULT_MESSAGE =
   'Your account has been paused by an administrator, so the dashboard and transactions are unavailable for now.'
@@ -50,7 +45,7 @@ export default function SuspendedPage() {
           </p>
 
           <button
-            onClick={openLiveChat}
+            onClick={openSmartsupp}
             className="relative mt-8 inline-flex items-center justify-center gap-2 h-12 w-full max-w-xs rounded-full bg-dark-base text-white dark:bg-white dark:text-dark-base text-[15px] font-semibold hover:opacity-90 active:scale-[0.98] transition"
           >
             <MessageSquare size={17} /> Contact support

@@ -9,7 +9,7 @@ const inter = Inter({
   display: "swap",
 });
 import { ThemeProvider } from "@/providers/ThemeProvider";
-import { TawkChat } from "@/components/ui/TawkChat";
+import { SmartsuppChat } from "@/components/ui/SmartsuppChat";
 import { SessionGuard } from "@/components/ui/SessionGuard";
 
 const SITE_URL = 'https://tesla-bridges-capital.vercel.app'
@@ -57,7 +57,7 @@ export default function RootLayout({
       <body className="antialiased">
         <ThemeProvider>{children}</ThemeProvider>
         <SessionGuard />
-        <TawkChat />
+        <SmartsuppChat />
       </body>
     </html>
   );
