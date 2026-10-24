@@ -44,9 +44,9 @@ export function Certificates({ compact = false }: { compact?: boolean }) {
 
   // Landing certifications panel — full width, no card background, square tiles
   return (
-    <div className="mt-14 w-full px-4 sm:px-6 lg:px-8">
+    <div className="mt-14 w-full px-0 sm:px-6 lg:px-8">
       <p className="text-center text-xs font-semibold tracking-widest text-slate-400 uppercase mb-8">Certificates</p>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-8">
         {hasCerts
           ? certs.map((c, i) => (
               <motion.a
