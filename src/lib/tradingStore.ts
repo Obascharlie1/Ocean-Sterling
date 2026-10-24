@@ -20,7 +20,12 @@ const DEFAULT_BOT_SETTINGS: BotSettings = { enabled: false, risk: 'Balanced', al
 function readJSON<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(key)
-    return raw ? { ...fallback, ...JSON.parse(raw) } : fallback
+    if (!raw) return fallback
+    const parsed = JSON.parse(raw)
+    // Arrays stay arrays; objects merge onto defaults (to backfill new fields).
+    if (Array.isArray(fallback)) return (Array.isArray(parsed) ? parsed : fallback) as T
+    if (fallback && typeof fallback === 'object') return { ...fallback, ...parsed } as T
+    return parsed as T
   } catch { return fallback }
 }
 
