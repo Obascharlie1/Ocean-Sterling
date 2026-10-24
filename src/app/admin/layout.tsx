@@ -2,7 +2,7 @@
 
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { Shield, LogOut, Settings, LineChart } from 'lucide-react'
+import { Shield, LogOut, Settings, LineChart, Award } from 'lucide-react'
 
 function TopBar() {
   const router = useRouter()
@@ -30,6 +30,10 @@ function TopBar() {
         <Link href="/admin/trading" className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-dark-base dark:hover:text-white transition-colors">
           <LineChart size={14} />
           Trading
+        </Link>
+        <Link href="/admin/certificates" className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-dark-base dark:hover:text-white transition-colors">
+          <Award size={14} />
+          Certificates
         </Link>
         <Link href="/admin/settings" className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-dark-base dark:hover:text-white transition-colors">
           <Settings size={14} />

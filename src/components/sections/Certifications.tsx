@@ -5,6 +5,7 @@ import {
   Landmark, BadgeCheck, ShieldCheck, Scale, Globe, FileCheck,
   Lock, Award, Trophy, Star, Fingerprint,
 } from 'lucide-react'
+import { Certificates } from './Certificates'
 
 /*
  * Trust showcase. The regulator entries and certificate references here are
@@ -148,6 +149,7 @@ export function Certifications() {
             })}
           </div>
         </div>
+        <Certificates />
       </div>
     </section>
   )
