@@ -59,14 +59,28 @@ function arrangeLetters(text: string, extra = '') {
 export function Hero() {
   return (
     <section className="relative min-h-[60vh] sm:min-h-screen flex items-center pt-28 sm:pt-24 lg:pt-20 pb-16 overflow-hidden">
-      {/* Deep gradient backdrop with brand-green glows */}
+      {/* Video background */}
+      <video
+        className="absolute inset-0 w-full h-full object-cover"
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="auto"
+        poster="/images/skyscraper.jpg"
+      >
+        <source src="/hero.webm" type="video/webm" />
+        <source src="/hero.mp4" type="video/mp4" />
+      </video>
+
+      {/* Dark + brand-green overlay so copy stays legible and on-theme */}
+      <div className="absolute inset-0 bg-[#060a08]/82" />
       <div
         className="absolute inset-0"
         style={{
           background:
-            'radial-gradient(900px 620px at 18% 6%, rgba(6,193,103,0.20), transparent 60%),' +
-            'radial-gradient(760px 520px at 100% 100%, rgba(6,193,103,0.12), transparent 60%),' +
-            'linear-gradient(160deg, #0a0f0c 0%, #070707 55%)',
+            'radial-gradient(900px 620px at 18% 6%, rgba(6,193,103,0.22), transparent 60%),' +
+            'radial-gradient(760px 520px at 100% 100%, rgba(6,193,103,0.14), transparent 60%)',
         }}
       />
 

@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 
 export function InvestmentPlans() {
   return (
-    <section id="pricing" className="bg-light-surface/60 dark:bg-dark-surface/40 py-24 lg:py-32">
+    <section id="pricing" className="bg-light-surface/60 dark:bg-dark-surface/40 py-14 lg:py-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center max-w-2xl mx-auto mb-16">

@@ -12,7 +12,7 @@ const appFeatures = [
 
 export function MobileApp() {
   return (
-    <section className="bg-dark-base relative overflow-hidden py-24 lg:py-32">
+    <section className="bg-dark-base relative overflow-hidden py-14 lg:py-20">
       {/* Gradient background */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-dark-surface via-dark-base to-dark-base" />

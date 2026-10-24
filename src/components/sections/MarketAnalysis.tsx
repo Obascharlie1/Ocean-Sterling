@@ -11,7 +11,7 @@ export function MarketAnalysis() {
   const [open, setOpen] = useState(false)
 
   return (
-    <section className="bg-light-surface/60 dark:bg-dark-surface/40 py-20 sm:py-28">
+    <section className="bg-light-surface/60 dark:bg-dark-surface/40 py-14 sm:py-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
 

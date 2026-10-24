@@ -68,7 +68,7 @@ function InfiniteRow({
 
 export function PeopleSlideshow() {
   return (
-    <section className="bg-light-base/70 dark:bg-dark-base/40 py-16 sm:py-20 overflow-hidden">
+    <section className="bg-light-base/70 dark:bg-dark-base/40 py-12 sm:py-16 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10 text-center">
         <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">
           The Floor

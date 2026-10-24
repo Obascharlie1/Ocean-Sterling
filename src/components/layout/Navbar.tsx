@@ -38,7 +38,7 @@ export function Navbar() {
           <div className="flex items-center justify-between">
             {/* Logo */}
             <Link href="/" className="flex items-center">
-              <Wordmark href={null} className="h-6 sm:h-8" />
+              <Wordmark href={null} className="h-9 sm:h-11" />
             </Link>
 
             {/* Desktop nav */}

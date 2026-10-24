@@ -14,7 +14,7 @@ export function FinalCTA() {
   }
 
   return (
-    <section className="bg-light-base/70 dark:bg-dark-base/40 py-24 lg:py-32 relative overflow-hidden">
+    <section className="bg-light-base/70 dark:bg-dark-base/40 py-14 lg:py-20 relative overflow-hidden">
       {/* Background glow */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[400px] bg-brand-primary/6 dark:bg-brand-primary/8 blur-3xl" />

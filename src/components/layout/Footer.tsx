@@ -51,7 +51,7 @@ export function Footer() {
           {/* Brand */}
           <div className="col-span-1 sm:col-span-2 md:col-span-3 lg:col-span-2">
             <Link href="/" className="flex items-center mb-4">
-              <Wordmark href={null} className="h-9" />
+              <Wordmark href={null} className="h-12" />
             </Link>
             <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed mb-6 max-w-xs">
               Hedge-fund firepower for every trader. AI signals, sub-50ms execution, and the edge to move first.

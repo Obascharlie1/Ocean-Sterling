@@ -57,7 +57,7 @@ export function Testimonials() {
   const [activeVideo, setActiveVideo] = useState<string | null>(null)
 
   return (
-    <section className="bg-light-base/70 dark:bg-dark-base/40 py-20 sm:py-28">
+    <section className="bg-light-base/70 dark:bg-dark-base/40 py-14 sm:py-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Heading */}
