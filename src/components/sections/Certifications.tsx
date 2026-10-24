@@ -149,8 +149,8 @@ export function Certifications() {
             })}
           </div>
         </div>
-        <Certificates />
       </div>
+      <Certificates />
     </section>
   )
 }
