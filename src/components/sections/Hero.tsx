@@ -1,264 +1,83 @@
 'use client'
 
-import { motion, type Variants } from 'framer-motion'
-import { ArrowRight, TrendingUp, TrendingDown } from 'lucide-react'
 import Link from 'next/link'
-import { chartData, portfolioAssets } from '@/data'
+import { motion } from 'framer-motion'
+import { ArrowRight, Play, Sparkles } from 'lucide-react'
 
-const chartPath = (() => {
-  const w = 500
-  const h = 140
-  const min = Math.min(...chartData)
-  const max = Math.max(...chartData)
-  const range = max - min
-  const points = chartData.map((v, i) => {
-    const x = (i / (chartData.length - 1)) * w
-    const y = h - ((v - min) / range) * (h * 0.8) - h * 0.1
-    return `${x},${y}`
-  })
-  return {
-    line: `M ${points.join(' L ')}`,
-    area: `M 0,${h} L ${points.join(' L ')} L ${w},${h} Z`,
-  }
-})()
+const EASE = [0.16, 1, 0.3, 1] as const
 
-const liveMetrics = [
-  { label: 'S&P 500', value: '5,842.31', change: '+0.84%', up: true },
-  { label: 'BTC/USD', value: '$71,420', change: '+1.77%', up: true },
-  { label: 'NVDA', value: '$892.17', change: '+2.16%', up: true },
-  { label: 'VIX', value: '14.32', change: '-3.21%', up: false },
-  { label: 'GOLD', value: '$2,341', change: '+0.43%', up: true },
-  { label: 'EUR/USD', value: '1.0842', change: '-0.12%', up: false },
+const METRICS = [
+  { v: '10.4M+', l: 'Active traders' },
+  { v: '$48B+', l: 'Volume traded' },
+  { v: '140+', l: 'Markets' },
+  { v: '99.97%', l: 'Uptime' },
 ]
-
-// ── Headline "arrange" animation ─────────────────────────────
-// Letters fly in from a scattered/blurred offset and settle into place.
-const headlineContainer: Variants = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.035, delayChildren: 0.15 } },
-}
-const headlineLetter: Variants = {
-  hidden: { opacity: 0, y: 28, rotate: -8, filter: 'blur(8px)' },
-  visible: {
-    opacity: 1,
-    y: 0,
-    rotate: 0,
-    filter: 'blur(0px)',
-    transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
-  },
-}
-
-function arrangeLetters(text: string, extra = '') {
-  return text.split('').map((ch, i) => (
-    <motion.span key={extra + i} variants={headlineLetter} className={`inline-block ${extra}`}>
-      {ch === ' ' ? ' ' : ch}
-    </motion.span>
-  ))
-}
 
 export function Hero() {
   return (
-    <section className="relative min-h-[60vh] sm:min-h-screen flex items-center pt-28 sm:pt-24 lg:pt-20 pb-16 overflow-hidden">
+    <section className="relative min-h-[92vh] flex items-center pt-28 pb-16 overflow-hidden">
       {/* Video background */}
-      <video
-        className="absolute inset-0 w-full h-full object-cover"
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="auto"
-        poster="/images/skyscraper.jpg"
-      >
+      <video className="absolute inset-0 w-full h-full object-cover" autoPlay muted loop playsInline preload="auto" poster="/images/skyscraper.jpg">
         <source src="/hero.webm" type="video/webm" />
         <source src="/hero.mp4" type="video/mp4" />
       </video>
-
-      {/* Dark + brand-green overlay so copy stays legible and on-theme */}
-      <div className="absolute inset-0 bg-[#060a08]/82" />
+      <div className="absolute inset-0 bg-[#060a08]/85" />
+      <div className="absolute inset-0 bg-gradient-to-t from-[#060a08] via-transparent to-[#060a08]/40" />
       <div
-        className="absolute inset-0"
-        style={{
-          background:
-            'radial-gradient(900px 620px at 18% 6%, rgba(6,193,103,0.22), transparent 60%),' +
-            'radial-gradient(760px 520px at 100% 100%, rgba(6,193,103,0.14), transparent 60%)',
-        }}
+        className="absolute inset-0 pointer-events-none opacity-[0.06]"
+        style={{ backgroundImage: 'radial-gradient(rgba(27,227,138,0.6) 1px, transparent 1px)', backgroundSize: '26px 26px' }}
       />
 
-      {/* Subtle grid */}
-      <div
-        className="absolute inset-0 pointer-events-none opacity-[0.05]"
-        style={{
-          backgroundImage: `linear-gradient(#06C167 1px, transparent 1px), linear-gradient(90deg, #06C167 1px, transparent 1px)`,
-          backgroundSize: '80px 80px',
-        }}
-      />
+      <div className="relative z-10 w-full max-w-5xl mx-auto px-6 text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: EASE }}
+          className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] backdrop-blur px-3.5 py-1.5 text-xs font-medium text-white/85"
+        >
+          <span className="inline-flex items-center gap-1 text-brand-secondary"><Sparkles size={13} /> New</span>
+          <span className="w-px h-3 bg-white/20" />
+          AI copy trading &amp; bot — now live
+        </motion.div>
 
-      {/* Red vertical accent bar */}
-      <div className="absolute left-0 top-0 bottom-0 w-1 bg-brand-primary hidden lg:block" />
+        <motion.h1
+          initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: EASE, delay: 0.05 }}
+          className="mt-7 text-5xl sm:text-6xl lg:text-7xl font-semibold tracking-tight text-white leading-[1.03]"
+        >
+          Invest with the
+          <br className="hidden sm:block" /> edge of a <span className="text-brand-secondary">hedge fund.</span>
+        </motion.h1>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+        <motion.p
+          initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: EASE, delay: 0.12 }}
+          className="mt-6 max-w-xl mx-auto text-lg leading-relaxed text-white/65"
+        >
+          AI signals, copy trading and an autonomous bot — institutional firepower,
+          handed to traders who move first.
+        </motion.p>
 
-          {/* LEFT — copy */}
-          <div className="text-center lg:text-left">
-            {/* Label */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.4 }}
-              className="flex items-center justify-center lg:justify-start gap-3 mb-8"
-            >
-              <div className="w-6 h-px bg-brand-primary" />
-              <span className="text-xs font-bold tracking-widest text-slate-400 uppercase">
-                Precision at market speed
-              </span>
-            </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: EASE, delay: 0.18 }}
+          className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-3"
+        >
+          <Link href="/auth/register" className="group inline-flex items-center justify-center gap-2 h-12 px-7 rounded-full bg-white text-dark-base text-[15px] font-semibold hover:opacity-90 active:scale-[0.98] transition">
+            Start trading free <ArrowRight size={17} className="transition group-hover:translate-x-0.5" />
+          </Link>
+          <Link href="#how" className="inline-flex items-center justify-center gap-2 h-12 px-6 rounded-full border border-white/20 bg-white/[0.04] text-white text-[15px] font-semibold hover:bg-white/[0.1] transition">
+            <Play size={15} /> How it works
+          </Link>
+        </motion.div>
 
-            {/* Headline — letters arrange into place */}
-            <motion.h1
-              variants={headlineContainer}
-              initial="hidden"
-              animate="visible"
-              className="text-6xl sm:text-7xl lg:text-8xl font-bold text-white leading-[1.02] tracking-tight mb-6"
-            >
-              {arrangeLetters('Trade')}
-              <br />
-              {arrangeLetters('faster.', 'gradient-text')}
-              <br />
-              {arrangeLetters('Win more.')}
-            </motion.h1>
-
-            <motion.p
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="text-base sm:text-lg text-slate-400 leading-relaxed mb-8 max-w-md mx-auto lg:mx-0 lg:border-l-2 lg:border-dark-border lg:pl-4"
-            >
-              AI signals, sub-50ms fills, and automated risk control — the firepower hedge funds guard, handed to traders who move first.
-            </motion.p>
-
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.3 }}
-              className="flex flex-col xs:flex-row sm:flex-row gap-3 mb-10 items-center justify-center lg:items-start lg:justify-start"
-            >
-              <Link
-                href="/auth/register"
-                className="inline-flex items-center justify-center gap-2 font-bold tracking-tight rounded-full px-7 py-3.5 text-base bg-brand-primary text-white hover:bg-brand-dim border border-brand-primary transition-all duration-150"
-              >
-                Start Trading
-                <ArrowRight size={16} />
-              </Link>
-              <Link
-                href="/auth/login"
-                className="inline-flex items-center justify-center gap-2 font-bold tracking-tight rounded-full px-7 py-3.5 text-base border border-white/30 text-white hover:bg-white/10 transition-all duration-150"
-              >
-                Sign In
-              </Link>
-            </motion.div>
-
-            {/* Hard stats row */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.4, delay: 0.4 }}
-              className="grid grid-cols-3 border-t border-dark-border pt-8"
-            >
-              {[
-                { num: '10.4M', label: 'Traders' },
-                { num: '$48B+', label: 'Volume' },
-                { num: '98.3%', label: 'AI Accuracy' },
-              ].map((s, i) => (
-                <div key={s.label} className={`${i !== 0 ? 'border-l border-dark-border pl-6' : ''}`}>
-                  <p className="text-2xl font-black text-white tracking-tight">{s.num}</p>
-                  <p className="text-xs text-slate-400 font-medium uppercase tracking-wider mt-0.5">{s.label}</p>
-                </div>
-              ))}
-            </motion.div>
-          </div>
-
-          {/* RIGHT — dashboard */}
-          <motion.div
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="relative"
-          >
-            {/* Main dashboard panel */}
-            <div className="border border-dark-border bg-dark-card">
-              {/* Top bar */}
-              <div className="flex items-center justify-between px-4 py-3 border-b border-dark-border">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-brand-primary" />
-                  <span className="text-xs font-bold text-white uppercase tracking-widest">Portfolio</span>
-                </div>
-                <span className="text-xs text-slate-400 font-mono">LIVE</span>
-              </div>
-
-              {/* Portfolio value */}
-              <div className="px-4 py-4 border-b border-dark-border">
-                <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Total Value</p>
-                <p className="text-3xl font-black text-white font-mono tracking-tight">$847,392.00</p>
-                <span className="text-sm font-bold text-brand-primary flex items-center gap-1 mt-1">
-                  <TrendingUp size={14} />
-                  +$47,218 · +24.7% MTD
-                </span>
-              </div>
-
-              {/* Chart */}
-              <div className="h-[90px] sm:h-[130px] bg-dark-surface relative">
-                <svg viewBox="0 0 500 140" preserveAspectRatio="none" className="w-full h-full">
-                  <defs>
-                    <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#06C167" stopOpacity="0.15" />
-                      <stop offset="100%" stopColor="#06C167" stopOpacity="0" />
-                    </linearGradient>
-                  </defs>
-                  {[0.25, 0.5, 0.75].map((y) => (
-                    <line key={y} x1="0" y1={y * 140} x2="500" y2={y * 140} stroke="currentColor" strokeOpacity="0.06" strokeWidth="1" />
-                  ))}
-                  <path d={chartPath.area} fill="url(#chartFill)" />
-                  <path d={chartPath.line} fill="none" stroke="#06C167" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" />
-                  <circle cx="500" cy="19" r="3" fill="#06C167" />
-                </svg>
-              </div>
-
-              {/* Assets grid — hidden on mobile to keep hero compact */}
-              <div className="hidden sm:grid grid-cols-2">
-                {portfolioAssets.slice(0, 4).map((asset, i) => (
-                  <div
-                    key={asset.symbol}
-                    className={`flex items-center gap-2 px-3 py-2.5 ${i < 2 ? 'border-b' : ''} ${i % 2 === 0 ? 'border-r' : ''} border-dark-border`}
-                  >
-                    <img src={asset.logo} alt={asset.symbol} className="w-6 h-6 object-contain flex-shrink-0 invert" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-white">{asset.symbol}</p>
-                      <p className="text-[10px] text-slate-400 font-mono">{asset.allocation}%</p>
-                    </div>
-                    <span className={`text-xs font-bold flex items-center gap-0.5 ${asset.changePercent >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                      {asset.changePercent >= 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
-                      {asset.changePercent >= 0 ? '+' : ''}{asset.changePercent}%
-                    </span>
-                  </div>
-                ))}
-              </div>
+        {/* Metric strip */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: EASE, delay: 0.26 }}
+          className="mt-14 grid grid-cols-2 sm:grid-cols-4 gap-px max-w-2xl mx-auto rounded-2xl overflow-hidden border border-white/10 bg-white/[0.06]"
+        >
+          {METRICS.map(m => (
+            <div key={m.l} className="bg-[#060a08]/40 px-4 py-4">
+              <p className="text-xl sm:text-2xl font-semibold tracking-tight text-white tabular-nums">{m.v}</p>
+              <p className="mt-0.5 text-xs text-white/50">{m.l}</p>
             </div>
-
-            {/* Live market ticker below card — hidden on mobile */}
-            <div className="hidden sm:block mt-3 border border-dark-border overflow-hidden">
-              <div className="flex">
-                {liveMetrics.map((m) => (
-                  <div key={m.label} className="flex items-center gap-2 px-4 py-2 border-r border-dark-border whitespace-nowrap flex-shrink-0">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">{m.label}</span>
-                    <span className="text-[10px] font-mono font-bold text-white">{m.value}</span>
-                    <span className={`text-[10px] font-bold ${m.up ? 'text-emerald-400' : 'text-red-400'}`}>{m.change}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-        </div>
+          ))}
+        </motion.div>
       </div>
     </section>
   )

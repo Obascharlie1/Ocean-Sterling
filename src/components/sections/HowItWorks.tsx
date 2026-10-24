@@ -1,118 +1,40 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { UserPlus, CreditCard, TrendingUp } from 'lucide-react'
-import { howItWorksSteps } from '@/data'
-import { Button } from '@/components/ui/Button'
-import { ArrowRight } from 'lucide-react'
+import { UserPlus, Wallet, LineChart } from 'lucide-react'
+import { SectionHead } from '@/components/ui/Section'
 
-const iconMap: Record<string, React.FC<{ size?: number; className?: string }>> = {
-  userPlus: UserPlus,
-  creditCard: CreditCard,
-  trendingUp: TrendingUp,
-}
+const EASE = [0.16, 1, 0.3, 1] as const
+
+const STEPS = [
+  { icon: UserPlus,  title: 'Create your account', body: 'Sign up in minutes and verify your identity with a single document.' },
+  { icon: Wallet,    title: 'Fund your wallet',    body: 'Deposit by bank transfer, card, PayPal or crypto — credited on confirmation.' },
+  { icon: LineChart, title: 'Trade or automate',   body: 'Follow AI signals, copy a top trader, or switch the bot on and let it run.' },
+]
 
 export function HowItWorks() {
   return (
-    <section className="bg-light-base/70 dark:bg-dark-base/40 py-14 lg:py-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="text-center max-w-2xl mx-auto mb-20">
-          <motion.span
-            initial={{ opacity: 0, y: 12 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="inline-block text-xs font-semibold tracking-widest text-slate-400 uppercase mb-4"
-          >
-            Go Live
-          </motion.span>
-          <motion.h2
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.05 }}
-            className="text-4xl lg:text-5xl font-bold text-dark-base dark:text-light-base tracking-tight mb-4"
-          >
-            From zero to first trade in{' '}
-            minutes
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 12 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.1 }}
-            className="text-slate-500 dark:text-slate-400 leading-relaxed"
-          >
-            Three steps stand between you and a fully-loaded trading desk. No friction, no waiting.
-          </motion.p>
-        </div>
+    <section id="how" className="py-16 lg:py-24 bg-light-surface/60 dark:bg-white/[0.02] border-y border-black/[0.06] dark:border-white/[0.06]">
+      <div className="max-w-6xl mx-auto px-6">
+        <SectionHead eyebrow="How it works" title="Live in three steps" subtitle="No paperwork marathons. From sign-up to your first trade in under five minutes." />
 
-        {/* Steps */}
-        <div className="relative grid md:grid-cols-3 gap-8 lg:gap-12">
-          {/* Connector line — desktop */}
-          <div className="hidden md:block absolute top-10 left-[16.66%] right-[16.66%] h-px">
+        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-4">
+          {STEPS.map((s, i) => (
             <motion.div
-              initial={{ scaleX: 0 }}
-              whileInView={{ scaleX: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 1, delay: 0.3 }}
-              style={{ transformOrigin: 'left' }}
-              className="h-full bg-gradient-to-r from-brand-primary/40 via-brand-primary to-brand-primary/40"
-            />
-          </div>
-
-          {howItWorksSteps.map((step, i) => {
-            const Icon = iconMap[step.icon]
-            return (
-              <motion.div
-                key={step.step}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: '-40px' }}
-                transition={{ duration: 0.5, delay: 0.1 + i * 0.15 }}
-                className="relative text-center"
-              >
-                {/* Step number + icon */}
-                <div className="relative inline-flex flex-col items-center mb-6">
-                  <div className="w-18 h-18 border border-brand-primary/30 flex items-center justify-center relative">
-                    <div className="w-14 h-14 bg-brand-primary/10 dark:bg-brand-primary/15 flex items-center justify-center">
-                      <Icon size={24} className="text-slate-500 dark:text-slate-400" />
-                    </div>
-                    <div className="absolute -top-2.5 -right-2.5 w-5 h-5 bg-brand-primary flex items-center justify-center">
-                      <span className="text-[10px] font-bold text-white">{i + 1}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="max-w-xs mx-auto">
-                  <span className="text-[10px] font-bold text-slate-400 tracking-widest uppercase mb-2 block">
-                    Step {step.step}
-                  </span>
-                  <h3 className="text-xl font-bold text-dark-base dark:text-light-base mb-3">
-                    {step.title}
-                  </h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-                    {step.description}
-                  </p>
-                </div>
-              </motion.div>
-            )
-          })}
+              key={s.title}
+              initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+              transition={{ duration: 0.5, ease: EASE, delay: i * 0.08 }}
+              className="relative rounded-2xl border border-black/[0.08] dark:border-white/[0.08] bg-white dark:bg-[#0E100F] p-6"
+            >
+              <span className="absolute top-5 right-6 text-5xl font-semibold text-black/[0.04] dark:text-white/[0.06] tabular-nums">0{i + 1}</span>
+              <span className="inline-grid place-items-center w-11 h-11 rounded-xl bg-brand-primary/10 text-brand-primary ring-1 ring-brand-primary/15">
+                <s.icon size={20} />
+              </span>
+              <h3 className="mt-5 text-lg font-semibold text-dark-base dark:text-white">{s.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-slate-500 dark:text-slate-400">{s.body}</p>
+            </motion.div>
+          ))}
         </div>
-
-        {/* CTA */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.5 }}
-          className="text-center mt-16"
-        >
-          <Button size="lg">
-            Create Free Account
-            <ArrowRight size={18} />
-          </Button>
-        </motion.div>
       </div>
     </section>
   )
