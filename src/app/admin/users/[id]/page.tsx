@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 
 import { computeBalance, totalDeposits, totalWithdrawals } from '@/lib/balance'
+import { LANGUAGES } from '@/lib/i18n'
 import { EASE } from '@/components/dashboard/motion'
 
 /* ─── types ─────────────────────────────────────────────────────────────── */
@@ -40,6 +41,7 @@ interface Profile {
   withdrawal_pin_result:       string | null
   withdrawal_pin_title:        string | null
   withdrawal_pin_tone:         'success' | 'pending' | 'error' | null
+  language:                    string | null
 }
 
 interface Tx {
@@ -956,6 +958,18 @@ export default function AdminUserDetailPage() {
                   className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold bg-brand-primary hover:bg-brand-dim disabled:opacity-60 text-white rounded-lg transition-colors">
                   {secBusy === 'msg' ? <Loader2 size={13} className="animate-spin" /> : <><Check size={13} /> Save messages</>}
                 </button>
+              </div>
+
+              {/* Preferred language */}
+              <div className="pt-5 border-t border-light-border dark:border-dark-border">
+                <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Preferred language (translates their whole app)</label>
+                <select
+                  value={profile.language ?? 'en'}
+                  onChange={e => saveFields({ language: e.target.value }, 'lang')}
+                  disabled={secBusy === 'lang'}
+                  className="w-full px-3 py-2.5 text-sm border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface text-dark-base dark:text-white rounded-lg focus:outline-none focus:border-brand-primary">
+                  {LANGUAGES.map(l => <option key={l.code} value={l.code}>{l.flag} {l.name}</option>)}
+                </select>
               </div>
 
               {/* Suspension */}

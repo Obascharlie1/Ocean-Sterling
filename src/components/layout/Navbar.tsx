@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { Menu, X } from 'lucide-react'
 import { Wordmark } from '@/components/ui/Wordmark'
+import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { navLinks } from '@/data'
 import { cn } from '@/lib/utils'
@@ -56,6 +57,7 @@ export function Navbar() {
 
             {/* Desktop actions */}
             <div className="hidden md:flex items-center gap-3">
+              <LanguageSwitcher />
               <ThemeToggle />
               <Link
                 href="/auth/login"

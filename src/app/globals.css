@@ -146,3 +146,16 @@ button {
 
 .animate-ticker { animation: ticker 30s linear infinite; }
 .animate-float { animation: float 6s ease-in-out infinite; }
+
+/* ── Google Translate widget: hide its chrome, keep translations ─────────── */
+#google_translate_element,
+.goog-te-banner-frame,
+.goog-te-gadget-icon,
+#goog-gt-tt,
+.goog-te-balloon-frame,
+iframe.skiptranslate,
+.skiptranslate { display: none !important; }
+body { top: 0 !important; position: static !important; }
+html { margin-top: 0 !important; }
+.goog-text-highlight { background: none !important; box-shadow: none !important; }
+font[style] { background: transparent !important; box-shadow: none !important; }

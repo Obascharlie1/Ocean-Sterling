@@ -37,6 +37,7 @@ export const DEMO_PROFILE = {
   withdrawal_pin_result: '',
   withdrawal_pin_title: '',
   withdrawal_pin_tone: 'success' as 'success' | 'pending' | 'error',
+  language: 'en',
 }
 
 export const DEMO_TRANSACTIONS = [

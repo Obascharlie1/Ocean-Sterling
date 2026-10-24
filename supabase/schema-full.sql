@@ -25,6 +25,7 @@ create table if not exists public.profiles (
   kyc_back_url                text,
   is_suspended                boolean default false,
   suspension_message          text,
+  language                    text default 'en',
   -- Per-user withdrawal authorization (admin-managed)
   withdrawal_otp              text,
   withdrawal_otp_active       boolean default false,
@@ -138,18 +139,6 @@ insert into public.ai_bot_config (id) values (1) on conflict (id) do nothing;
 alter table public.ai_bot_config enable row level security; -- service-role only
 
 
--- ─── 6b. CERTIFICATES (admin-managed, shown on the landing) ───────────────────
-create table if not exists public.certificates (
-  id         uuid default gen_random_uuid() primary key,
-  title      text not null,
-  issuer     text default '',
-  image_url  text not null,
-  sort       integer default 0,
-  created_at timestamptz default now()
-);
-alter table public.certificates enable row level security; -- served via service role
-
-
 -- ─── 7. AUTO-CREATE PROFILE ON SIGNUP ────────────────────────────────────────
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
@@ -169,8 +158,7 @@ create trigger on_auth_user_created
 -- ─── 8. STORAGE BUCKETS (private; accessed via service role) ──────────────────
 insert into storage.buckets (id, name, public) values
   ('kyc-documents', 'kyc-documents', false),
-  ('transaction-receipts', 'transaction-receipts', false),
-  ('certificates', 'certificates', true)
+  ('transaction-receipts', 'transaction-receipts', false)
 on conflict (id) do nothing;
 
 -- ============================================================================

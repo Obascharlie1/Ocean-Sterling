@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import { Wordmark } from '@/components/ui/Wordmark'
-import { Certificates } from '@/components/sections/Certificates'
 
 const footerLinks: Record<string, { label: string; href: string }[]> = {
   Product: [
@@ -65,12 +64,6 @@ export function Footer() {
               </ul>
             </div>
           ))}
-        </div>
-
-        {/* Certificates */}
-        <div className="pt-8 mb-8 border-t border-light-border dark:border-dark-border">
-          <p className="text-xs font-semibold text-dark-base dark:text-light-base uppercase tracking-wider mb-4">Certificates &amp; registrations</p>
-          <Certificates compact />
         </div>
 
         {/* Bottom bar */}

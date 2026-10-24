@@ -14,7 +14,7 @@ const profile = (p: Partial<DemoAdminProfile> & Pick<DemoAdminProfile, 'id' | 'f
   kyc_doc_type: null, kyc_submitted_at: null, is_suspended: false, created_at: daysAgo(90),
   suspension_message: '', withdrawal_otp: null, withdrawal_otp_active: false,
   withdrawal_otp_expires_at: null, withdrawal_pin_instructions: '', withdrawal_pin_result: '',
-  withdrawal_pin_title: '', withdrawal_pin_tone: 'success',
+  withdrawal_pin_title: '', withdrawal_pin_tone: 'success', language: 'en',
   ...p,
 })
 
@@ -39,6 +39,7 @@ export interface DemoAdminProfile {
   withdrawal_pin_result: string
   withdrawal_pin_title: string
   withdrawal_pin_tone: 'success' | 'pending' | 'error'
+  language: string
 }
 
 // Transactions first, so each user's balance can be derived from them.

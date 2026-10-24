@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, ArrowRight, ArrowLeft, Loader2, Check } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { EASE } from '@/components/dashboard/motion'
+import { LANGUAGES, setLangCookie } from '@/lib/i18n'
 
 const COUNTRIES = [
   'Afghanistan','Albania','Algeria','Andorra','Angola','Argentina','Armenia','Australia',
@@ -44,7 +45,7 @@ export default function RegisterPage() {
 
   const [form, setForm] = useState({
     fullName: '', email: '', password: '', confirmPassword: '',
-    gender: '', dateOfBirth: '', country: '', state: '', address: '', phone: '',
+    gender: '', dateOfBirth: '', country: '', state: '', address: '', phone: '', language: 'en',
   })
   const [showPw,      setShowPw]      = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -119,9 +120,11 @@ export default function RegisterPage() {
         state:         form.state,
         address:       form.address,
         phone:         form.phone,
+        language:      form.language,
       }).eq('id', data.user.id)
     }
 
+    setLangCookie(form.language)
     router.push('/dashboard')
     router.refresh()
   }
@@ -239,6 +242,12 @@ export default function RegisterPage() {
                 {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
               {errors.country && <p className={errCls}>{errors.country}</p>}
+            </div>
+            <div>
+              <label className={label}>Preferred language</label>
+              <select value={form.language} onChange={e => update('language', e.target.value)} className={field}>
+                {LANGUAGES.map(l => <option key={l.code} value={l.code}>{l.flag} {l.name}</option>)}
+              </select>
             </div>
             <div>
               <label className={label}>State / province <span className="font-normal text-slate-400">(optional)</span></label>

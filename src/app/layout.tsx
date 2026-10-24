@@ -11,6 +11,7 @@ const inter = Inter({
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import { SmartsuppChat } from "@/components/ui/SmartsuppChat";
 import { SessionGuard } from "@/components/ui/SessionGuard";
+import { GoogleTranslate } from "@/components/ui/GoogleTranslate";
 
 const SITE_URL = 'https://tesla-bridges-capital.vercel.app'
 const OG_IMAGE = `${SITE_URL}/images/og-cover.jpg`
@@ -58,6 +59,7 @@ export default function RootLayout({
         <ThemeProvider>{children}</ThemeProvider>
         <SessionGuard />
         <SmartsuppChat />
+        <GoogleTranslate />
       </body>
     </html>
   );

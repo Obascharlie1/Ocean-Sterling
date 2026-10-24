@@ -43,7 +43,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   // Balance is derived from transactions + profit, so it is never set directly.
   const allowed = ['profit', 'plan', 'kyc_status', 'is_suspended', 'full_name', 'country',
     'suspension_message', 'withdrawal_otp', 'withdrawal_otp_active', 'withdrawal_otp_expires_at',
-    'withdrawal_pin_instructions', 'withdrawal_pin_result', 'withdrawal_pin_title', 'withdrawal_pin_tone']
+    'withdrawal_pin_instructions', 'withdrawal_pin_result', 'withdrawal_pin_title', 'withdrawal_pin_tone', 'language']
   const updates: Record<string, unknown> = {}
   for (const key of allowed) {
     if (key in body) updates[key] = body[key]
