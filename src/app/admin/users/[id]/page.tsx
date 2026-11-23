@@ -17,6 +17,7 @@ import {
 import { computeBalance, totalDeposits, totalWithdrawals } from '@/lib/balance'
 import { LANGUAGES } from '@/lib/i18n'
 import { EASE } from '@/components/dashboard/motion'
+import { LoginDetailsSection, ProfileInfoSection, type AuthInfo } from '@/components/admin/UserAccountSections'
 
 /* ─── types ─────────────────────────────────────────────────────────────── */
 
@@ -25,6 +26,11 @@ interface Profile {
   full_name:       string
   email:           string
   country:         string
+  gender?:         string | null
+  date_of_birth?:  string | null
+  phone?:          string | null
+  state?:          string | null
+  address?:        string | null
   plan:            string
   balance:         number
   profit:          number
@@ -80,6 +86,7 @@ export default function AdminUserDetailPage() {
 
   const [profile,      setProfile]      = useState<Profile | null>(null)
   const [transactions, setTransactions] = useState<Tx[]>([])
+  const [authInfo,     setAuthInfo]     = useState<AuthInfo | null>(null)
   const [loading,      setLoading]      = useState(true)
   const [error,        setError]        = useState('')
 
@@ -141,6 +148,7 @@ export default function AdminUserDetailPage() {
     const { data } = await res.json()
     setProfile(data.profile)
     setTransactions(data.transactions ?? [])
+    setAuthInfo(data.auth ?? null)
     setLoading(false)
   }, [userId])
 
@@ -515,6 +523,20 @@ export default function AdminUserDetailPage() {
           <button onClick={() => setActionError('')} className="flex-shrink-0"><X size={14} /></button>
         </div>
       )}
+
+      {/* ── Login details & profile information ────────────────────────── */}
+      <LoginDetailsSection
+        userId={userId}
+        profile={profile}
+        auth={authInfo}
+        onProfile={p => setProfile(prev => (prev ? { ...prev, ...p } : prev))}
+        onAuth={a => setAuthInfo(prev => (prev ? { ...prev, ...a } : { email: '', last_sign_in_at: null, email_confirmed_at: null, ...a }))}
+      />
+      <ProfileInfoSection
+        userId={userId}
+        profile={profile}
+        onProfile={p => setProfile(prev => (prev ? { ...prev, ...p } : prev))}
+      />
 
       {/* ── Section 1: Details & Balance ───────────────────────────────── */}
       <section className="bg-light-base dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl">
