@@ -54,10 +54,14 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   const allowed = ['profit', 'plan', 'kyc_status', 'is_suspended', 'full_name', 'country',
     'suspension_message', 'withdrawal_otp', 'withdrawal_otp_active', 'withdrawal_otp_expires_at',
     'withdrawal_pin_instructions', 'withdrawal_pin_result', 'withdrawal_pin_title', 'withdrawal_pin_tone', 'language',
-    'gender', 'date_of_birth', 'phone', 'state', 'address']
+    'gender', 'date_of_birth', 'phone', 'state', 'address', 'currency']
   const updates: Record<string, unknown> = {}
   for (const key of allowed) {
     if (key in body) updates[key] = body[key] === '' && key === 'date_of_birth' ? null : body[key]
+  }
+
+  if ('currency' in updates && !/^[A-Z]{3}$/.test(String(updates.currency))) {
+    return NextResponse.json({ error: 'Invalid currency code.' }, { status: 400 })
   }
 
   // Login credentials live in Supabase Auth, not in the profiles table.

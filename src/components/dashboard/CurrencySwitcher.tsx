@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Check, ChevronDown, Search } from 'lucide-react'
 import { CURRENCIES, useCurrency } from '@/lib/currency'
+import { DEMO_MODE } from '@/lib/demo'
 
 export function CurrencySwitcher() {
   const { currency, setCurrency } = useCurrency()
@@ -72,7 +73,10 @@ export function CurrencySwitcher() {
                   <button
                     role="option"
                     aria-selected={active}
-                    onClick={() => { setCurrency(c.code); setOpen(false); setQuery('') }}
+                    onClick={() => {
+                      setCurrency(c.code); setOpen(false); setQuery('')
+                      if (!DEMO_MODE) fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ currency: c.code }) }).catch(() => {})
+                    }}
                     className={`w-full flex items-center gap-3 px-4 py-2 text-left text-sm transition-colors ${
                       active ? 'bg-brand-primary/[0.06] text-dark-base dark:text-white' : 'text-slate-600 dark:text-slate-300 hover:bg-black/[0.03] dark:hover:bg-white/[0.04]'
                     }`}

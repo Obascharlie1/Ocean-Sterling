@@ -8,7 +8,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('full_name, email, gender, date_of_birth, phone, country, state, address, plan, kyc_status, balance, profit, created_at')
+    .select('full_name, email, gender, date_of_birth, phone, country, state, address, currency, plan, kyc_status, balance, profit, created_at')
     .eq('id', user.id)
     .single()
 
@@ -23,10 +23,13 @@ export async function PATCH(request: NextRequest) {
 
   const body = await request.json()
 
-  const allowed = ['full_name', 'gender', 'date_of_birth', 'phone', 'country', 'state', 'address', 'language']
+  const allowed = ['full_name', 'gender', 'date_of_birth', 'phone', 'country', 'state', 'address', 'language', 'currency']
   const updates: Record<string, unknown> = {}
   for (const key of allowed) {
     if (key in body) updates[key] = body[key]
+  }
+  if ('currency' in updates && !/^[A-Z]{3}$/.test(String(updates.currency))) {
+    return NextResponse.json({ error: 'Invalid currency code.' }, { status: 400 })
   }
 
   const { data, error } = await supabase
