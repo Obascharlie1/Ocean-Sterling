@@ -7,6 +7,7 @@ import { TopBar } from '@/components/dashboard/TopBar'
 import { Card, PageHeader, SectionTitle, Label, AmountInput, inputCls, PrimaryButton, SummaryRow } from '@/components/dashboard/ui'
 import { createClient } from '@/lib/supabase/client'
 import { CountUp, Reveal } from '@/components/dashboard/motion'
+import { useCurrency } from '@/lib/currency'
 import { DEMO_MODE, DEMO_PROFILE } from '@/lib/demo'
 
 type Method = 'bank' | 'bitcoin' | 'paypal'
@@ -44,7 +45,7 @@ export default function WithdrawPage() {
   const sel      = METHODS.find(m => m.id === method)!
   const fee      = amt * sel.feePct
   const receive  = Math.max(0, amt - fee)
-  const fmt      = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  const { accountSymbol, accountFormat: fmt } = useCurrency()
 
   const recipientOk =
     method === 'bank'    ? !!(f.accountName.trim() && f.accountNumber.trim()) :
@@ -53,7 +54,7 @@ export default function WithdrawPage() {
 
   const amountError =
     amt > available ? 'Amount exceeds your available balance.' :
-    amt > 0 && amt < MIN_WITHDRAWAL ? `Minimum withdrawal is $${MIN_WITHDRAWAL}.` : ''
+    amt > 0 && amt < MIN_WITHDRAWAL ? `Minimum withdrawal is ${accountSymbol}${MIN_WITHDRAWAL}.` : ''
 
   const canContinue = amt >= MIN_WITHDRAWAL && amt <= available && recipientOk
 
@@ -113,7 +114,7 @@ export default function WithdrawPage() {
                   <AmountInput value={amount} onChange={setAmount} onMax={() => setAmount(available.toFixed(2))} />
                   <div className="mt-3 flex items-center justify-between text-sm">
                     <span className="text-slate-500 dark:text-slate-400">
-                      Available: <span className="font-semibold tabular-nums text-dark-base dark:text-white"><CountUp prefix="$" value={available} decimals={2} /></span>
+                      Available: <span className="font-semibold tabular-nums text-dark-base dark:text-white"><CountUp prefix={accountSymbol} value={available} decimals={2} /></span>
                     </span>
                     {amountError && <span className="text-rose-600 dark:text-rose-400">{amountError}</span>}
                   </div>
@@ -190,12 +191,12 @@ export default function WithdrawPage() {
                 <Card className="p-6">
                   <h2 className="text-[17px] font-semibold text-dark-base dark:text-white">Summary</h2>
                   <div className="mt-4">
-                    <SummaryRow label="Withdrawal" value={<CountUp prefix="$" value={amt} decimals={2} duration={0.4} />} />
+                    <SummaryRow label="Withdrawal" value={<CountUp prefix={accountSymbol} value={amt} decimals={2} duration={0.4} />} />
                     <SummaryRow label={`Fee (${sel.fee.replace(' fee', '')})`} value={fee ? `−${fmt(fee)}` : 'Free'} />
                     <SummaryRow label="Method" value={sel.label} />
                     <SummaryRow label="Arrives" value={sel.eta} />
                     <div className="my-2 h-px bg-black/[0.06] dark:bg-white/[0.07]" />
-                    <SummaryRow label="You'll receive" value={<CountUp prefix="$" value={receive} decimals={2} duration={0.5} />} strong />
+                    <SummaryRow label="You'll receive" value={<CountUp prefix={accountSymbol} value={receive} decimals={2} duration={0.5} />} strong />
                   </div>
                   <div className="mt-6">
                     <PrimaryButton disabled={!canContinue}>Continue to verification</PrimaryButton>

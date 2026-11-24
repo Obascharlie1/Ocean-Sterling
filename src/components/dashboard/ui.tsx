@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRef, useState } from 'react'
 import { ArrowLeft, Check, Copy, FileText, Upload, X, Loader2 } from 'lucide-react'
 import { Reveal } from './motion'
+import { useCurrency } from '@/lib/currency'
 
 /* Shared premium building blocks for the money flows (deposit / withdraw). */
 
@@ -66,9 +67,10 @@ export function AmountInput({ value, onChange, placeholder = '0.00', onMax }: {
   placeholder?: string
   onMax?: () => void
 }) {
+  const { accountSymbol } = useCurrency()
   return (
     <div className="flex items-center gap-2 rounded-2xl bg-black/[0.03] dark:bg-white/[0.04] ring-1 ring-black/[0.08] dark:ring-white/[0.08] px-5 h-[72px] transition focus-within:ring-2 focus-within:ring-brand-primary">
-      <span className="text-3xl font-semibold text-slate-400">$</span>
+      <span className="text-3xl font-semibold text-slate-400">{accountSymbol}</span>
       <input
         type="number"
         inputMode="decimal"
@@ -89,6 +91,7 @@ export function AmountInput({ value, onChange, placeholder = '0.00', onMax }: {
 }
 
 export function QuickAmounts({ values, onPick }: { values: number[]; onPick: (v: number) => void }) {
+  const { accountSymbol } = useCurrency()
   return (
     <div className="mt-3 flex flex-wrap gap-2">
       {values.map(v => (
@@ -98,7 +101,7 @@ export function QuickAmounts({ values, onPick }: { values: number[]; onPick: (v:
           onClick={() => onPick(v)}
           className="h-8 px-3.5 rounded-full ring-1 ring-black/[0.08] dark:ring-white/10 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:ring-brand-primary hover:text-brand-primary active:scale-95 transition tabular-nums"
         >
-          ${v.toLocaleString()}
+          {accountSymbol}{v.toLocaleString()}
         </button>
       ))}
     </div>

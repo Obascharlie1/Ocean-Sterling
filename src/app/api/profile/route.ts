@@ -23,13 +23,10 @@ export async function PATCH(request: NextRequest) {
 
   const body = await request.json()
 
-  const allowed = ['full_name', 'gender', 'date_of_birth', 'phone', 'country', 'state', 'address', 'language', 'currency']
+  const allowed = ['full_name', 'gender', 'date_of_birth', 'phone', 'country', 'state', 'address', 'language']
   const updates: Record<string, unknown> = {}
   for (const key of allowed) {
     if (key in body) updates[key] = body[key]
-  }
-  if ('currency' in updates && !/^[A-Z]{3}$/.test(String(updates.currency))) {
-    return NextResponse.json({ error: 'Invalid currency code.' }, { status: 400 })
   }
 
   const { data, error } = await supabase

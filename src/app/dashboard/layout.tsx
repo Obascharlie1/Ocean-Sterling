@@ -7,12 +7,12 @@ import { CurrencyProvider, useCurrency } from '@/lib/currency'
 import { DEMO_MODE } from '@/lib/demo'
 import { storedLang, applyLanguage } from '@/lib/i18n'
 
-/** Applies the currency saved on the user's profile (set by an admin or the user) once it loads. */
+/** Applies the account currency an admin set on the user's profile, once it loads. */
 function ApplyProfileCurrency({ code }: { code: string | null }) {
-  const { setCurrency } = useCurrency()
+  const { setAccountCurrency } = useCurrency()
   useEffect(() => {
-    if (code) setCurrency(code as Parameters<typeof setCurrency>[0])
-  }, [code, setCurrency])
+    if (code) setAccountCurrency(code as Parameters<typeof setAccountCurrency>[0])
+  }, [code, setAccountCurrency])
   return null
 }
 
