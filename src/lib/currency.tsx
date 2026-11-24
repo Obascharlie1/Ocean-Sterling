@@ -77,15 +77,27 @@ export const CURRENCIES = [
 export type CurrencyCode = (typeof CURRENCIES)[number]['code']
 
 const STORAGE_KEY = 'dashboard-currency'
+const BASE_KEY = 'dashboard-account-currency'
 const CHANGE_EVENT = 'dashboard-currency-change'
 
-// The saved choice lives in localStorage; the server (and first client render) always sees USD.
+const isCode = (c: string | null): c is CurrencyCode => !!c && CURRENCIES.some(x => x.code === c)
+
+// The account (base) currency is set by an admin: stored amounts are in this currency.
+function readBase(): CurrencyCode {
+  try {
+    const saved = localStorage.getItem(BASE_KEY)
+    if (isCode(saved)) return saved
+  } catch { /* storage unavailable */ }
+  return 'USD'
+}
+
+// The display choice lives in localStorage (defaults to the account currency); the server and first client render see USD.
 function readSaved(): CurrencyCode {
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved && CURRENCIES.some(c => c.code === saved)) return saved as CurrencyCode
+    if (isCode(saved)) return saved
   } catch { /* storage unavailable */ }
-  return 'USD'
+  return readBase()
 }
 
 function subscribe(onChange: () => void) {
@@ -100,7 +112,14 @@ function subscribe(onChange: () => void) {
 interface CurrencyContextValue {
   currency: (typeof CURRENCIES)[number]
   setCurrency: (code: CurrencyCode) => void
-  /** Convert a USD amount into the selected currency. */
+  /** The account currency: what stored amounts are denominated in (set by an admin). */
+  accountCurrency: (typeof CURRENCIES)[number]
+  /** Apply the admin-set account currency. When it changes, display resets to it. */
+  setAccountCurrency: (code: CurrencyCode) => void
+  /** Format an amount in the account currency, with no conversion (forms, fees). */
+  accountFormat: (amount: number) => string
+  accountSymbol: string
+  /** Convert an account-currency amount into the selected display currency. */
   convert: (usd: number) => number
   /** Format a USD amount in the selected currency, e.g. "€1,234.50". */
   format: (usd: number, opts?: { cents?: boolean }) => string
@@ -125,6 +144,17 @@ function formatter(code: CurrencyCode, cents: boolean) {
 
 export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   const code = useSyncExternalStore(subscribe, readSaved, () => 'USD' as CurrencyCode)
+  const baseCode = useSyncExternalStore(subscribe, readBase, () => 'USD' as CurrencyCode)
+
+  const setAccountCurrency = useCallback((next: CurrencyCode) => {
+    try {
+      if (localStorage.getItem(BASE_KEY) !== next) {
+        localStorage.setItem(BASE_KEY, next)
+        localStorage.setItem(STORAGE_KEY, next)
+      }
+    } catch { /* storage unavailable */ }
+    window.dispatchEvent(new Event(CHANGE_EVENT))
+  }, [])
 
   const setCurrency = useCallback((next: CurrencyCode) => {
     try { localStorage.setItem(STORAGE_KEY, next) } catch { /* storage unavailable */ }
@@ -132,7 +162,10 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const currency = CURRENCIES.find(c => c.code === code) ?? CURRENCIES[0]
-  const convert = (usd: number) => usd * currency.rate
+  const accountCurrency = CURRENCIES.find(c => c.code === baseCode) ?? CURRENCIES[0]
+  const convert = (usd: number) => (usd / accountCurrency.rate) * currency.rate
+  const accountFormat = (amount: number) => formatter(baseCode, true).format(amount)
+  const accountSymbol = formatter(baseCode, true).formatToParts(0).filter(x => x.type === 'currency').map(x => x.value).join('')
   const formatValue = (value: number, { cents = true } = {}) => formatter(code, cents).format(value)
   const partsValue = (value: number) => {
     const p = formatter(code, true).formatToParts(value)
@@ -146,7 +179,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   const parts = (usd: number) => partsValue(convert(usd))
 
   return (
-    <CurrencyContext.Provider value={{ currency, setCurrency, convert, format, parts, formatValue, partsValue }}>
+    <CurrencyContext.Provider value={{ currency, setCurrency, accountCurrency, setAccountCurrency, accountFormat, accountSymbol, convert, format, parts, formatValue, partsValue }}>
       {children}
     </CurrencyContext.Provider>
   )

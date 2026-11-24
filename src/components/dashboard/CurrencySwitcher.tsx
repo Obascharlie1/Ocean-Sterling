@@ -89,7 +89,7 @@ export function CurrencySwitcher() {
             })}
           </ul>
           <p className="px-4 py-2.5 border-t border-light-border dark:border-dark-border text-[11px] leading-snug text-slate-400">
-            Amounts are held in USD and converted at reference rates for display.
+            Switching converts your account amounts at reference rates, for display only.
           </p>
         </div>
       )}

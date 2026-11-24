@@ -32,6 +32,7 @@ interface PendingWithdrawal {
 type Phase = 'enter' | 'submitting' | 'success'
 
 import { openSmartsupp } from '@/components/ui/SmartsuppChat'
+import { useCurrency } from '@/lib/currency'
 
 export default function WithdrawPinPage() {
   const [pin,      setPin]      = useState<string>('')
@@ -130,8 +131,8 @@ export default function WithdrawPinPage() {
     return () => window.removeEventListener('keydown', onKey)
   }, [press, back])
 
-  const fmt = (n: number | string) =>
-    `$${Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  const { accountFormat } = useCurrency()
+  const fmt = (n: number | string) => accountFormat(Number(n))
 
   if (phase === 'success') {
     const tone = TONES[resultTone]

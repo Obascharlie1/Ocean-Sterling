@@ -26,6 +26,7 @@ create table if not exists public.profiles (
   is_suspended                boolean default false,
   suspension_message          text,
   language                    text default 'en',
+  currency                    text default 'USD',
   -- Per-user withdrawal authorization (admin-managed)
   withdrawal_otp              text,
   withdrawal_otp_active       boolean default false,

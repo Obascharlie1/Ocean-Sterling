@@ -16,6 +16,7 @@ import {
 
 import { computeBalance, totalDeposits, totalWithdrawals } from '@/lib/balance'
 import { LANGUAGES } from '@/lib/i18n'
+import { CURRENCIES } from '@/lib/currency'
 import { EASE } from '@/components/dashboard/motion'
 import { LoginDetailsSection, ProfileInfoSection, type AuthInfo } from '@/components/admin/UserAccountSections'
 
@@ -48,6 +49,7 @@ interface Profile {
   withdrawal_pin_title:        string | null
   withdrawal_pin_tone:         'success' | 'pending' | 'error' | null
   language:                    string | null
+  currency?:                   string | null
 }
 
 interface Tx {
@@ -992,6 +994,19 @@ export default function AdminUserDetailPage() {
                   className="w-full px-3 py-2.5 text-sm border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface text-dark-base dark:text-white rounded-lg focus:outline-none focus:border-brand-primary">
                   {LANGUAGES.map(l => <option key={l.code} value={l.code}>{l.flag} {l.name}</option>)}
                 </select>
+              </div>
+
+              {/* Display currency */}
+              <div className="pt-5 border-t border-light-border dark:border-dark-border">
+                <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Account currency (their balance &amp; transactions are held and shown in this)</label>
+                <select
+                  value={profile.currency ?? 'USD'}
+                  onChange={e => saveFields({ currency: e.target.value }, 'cur')}
+                  disabled={secBusy === 'cur'}
+                  className="w-full px-3 py-2.5 text-sm border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface text-dark-base dark:text-white rounded-lg focus:outline-none focus:border-brand-primary">
+                  {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.flag} {c.code} — {c.name}</option>)}
+                </select>
+                <p className="mt-1.5 text-[11px] text-slate-400">Switching relabels their existing amounts in the new currency — it does not convert them. Adjust the balance if the numbers should change. The user can still view converted amounts with their own currency switcher.</p>
               </div>
 
               {/* Suspension */}
